@@ -1,14 +1,72 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Ultimate Toolbox Pro v3.1
+Ultimate Toolbox Pro v4.5
 =========================
 صندوق أدوات متكامل لسطح المكتب — Windows / Linux / macOS
-Python 3.9+ · customtkinter · offline-first
+Python 3.9+ · customtkinter (6.x) · offline-first
 
 التشغيل:  python toolbox.py
 الاعتمادات الأساسية:   customtkinter, psutil
-الاعتمادات الاختيارية: requests, qrcode, Pillow
+الاعتمادات الاختيارية: requests, qrcode, Pillow, llama-cpp-python (للـ LLM المحلي)،
+                      cryptography (لخزائن AES/Fernet — اختياري، له بديل مدمج)
+
+سجل تحسينات v4.5 — التفكير العميق + موديلات أكبر + خزائن Vault:
+- مفتاح 🧠 "التفكير العميق" في المحادثة: تشغيل/إيقاف بضغطة (للأجهزة الضعيفة)
+  · الإيقاف يحجب ‎<think>…</think>‎ وreasoning_content من البث فورًا ويعرض الجواب فقط
+  · مع خادم llama.cpp يُرسل chat_template_kwargs enable_thinking=false فلا تُولَّد
+    رموز التفكير أصلًا (توفير حقيقي في الوقت والذاكرة على الأجهزة الضعيفة)
+  · الحالة تُحفظ مع إعدادات LLM ويُشار لعدد الرموز المحجوبة بعد كل جواب
+- قائمة الموديلات أصبحت 25 موديلًا موثّقًا بالحجم الحقيقي: قائمتان — صغيرة (حتى 3B)
+  وكبيرة (7B حتى 70B): Qwen2.5/Qwen3، Llama 3.1/3.3، Mistral، gemma-2، phi-4،
+  DeepSeek-R1-Distill وQwQ وQwen3-30B-A3B (MoE) — كل الروابط فُحصت حيًّا (HTTP 200)
+- أداة جديدة 🛡️ Vault في قسم Security: خزائن مشفّرة بكلمة سر رئيسية
+  · تشفير AES-128 عبر Fernet إن توفّرت cryptography، وإلا شيفرة مدمجة
+    PBKDF2-HMAC-SHA256 (200k) + keystream HMAC-SHA256-CTR + MAC (encrypt-then-MAC)
+  · خزائن متعددة (.uvault)، إدخالات: عنوان/مستخدم/كلمة سر/رابط/ملاحظات
+  · نسخ كلمة السر بمسح تلقائي من الحافظة بعد 30 ثانية، بحث فوري، توليد كلمات سر
+  · قفل تلقائي بعد 5 دقائق خمول + قفل يدوي + تغيير الكلمة الرئيسية + حذف الخزنة
+
+سجل تحسينات v4.1 — Local LLM (GGUF):
+- أداة جديدة 🦙 Local LLM في قسم Developer: تشغيل نماذج GGUF محليًا بالكامل دون إنترنت
+- المحرك: llama.cpp عبر llama-cpp-python (اختياري — غيابه لا يؤثر على أي أداة أخرى)
+- تحميل/إخراج الموديل (Unload يحرر الذاكرة)، والموديل يبقى محمّلًا عند التنقل بين الأدوات
+- محادثة متعددة الأدوار مع بث حي للرموز (streaming) عبر قناة _ui الآمنة للخيوط
+- زر إيقاف فوري للتوليد + إحصاءات بعد كل إجابة (عدد الرموز والسرعة tok/s)
+- قارئ رؤوس GGUF مكتوب من الصفر عبر struct: الاسم، البنية، التكميم، طول السياق، الطبقات، المفردات — يعمل حتى بدون llama-cpp-python وبلا قراءة كاملة للملف
+- تقدير الذاكرة المطلوبة قبل التحميل + قائمة أحدث 6 موديلات محفوظة في الإعدادات
+- تذكّر آخر إعدادات الضبط (السياق، GPU layers، الحرارة، Top-P، البرومبت النظامي…) واستعادتها تلقائيًا
+- مغادرة صفحة الأداة أو إغلاق التطبيق يوقف التوليد ويحرر الذاكرة بأمان
+- صفر استدعاءات Tcl من خيوط العامل في أداة LLM: قيم الواجهة تُقرأ في الخيط الرئيسي وتُمرَّر كوسائط بايثون سادة (أكثر أمانًا على macOS خاصة)
+- كل النصوص الجديدة مترجمة في 10 لغات
+
+سجل تحسينات v4.0 — Phase 1 (القائمة الجانبية القابلة للتمرير + UX):
+- الشريط الجانبي أصبح CTkScrollableFrame قابلًا للتمرير: كل الأدوات تظهر حتى في النوافذ القصيرة (500px)
+- شريط تمرير رفيع 6px بألوان الثيم (border/primary) مع إخفاء تلقائي عندما لا تكون هناك حاجة له
+- عجلة الفأرة تعمل فوق الأزرار والعناوين (مدمجة في customtkinter 6.x + ربط صريح للأمان)
+- Shift+Wheel للتمرير الأفقي (مدعوم أصلًا من CTkScrollableFrame)
+- البحث يمرّر القائمة لأعلى تلقائيًا + debounce (180ms) لسلاسة الكتابة مع 60+ أداة
+- توسيع/طي الأقسام يحافظ على موضع التمرير (لا قفز مزعج للأعلى)
+- تلميح "اسحب للأسفل ↓" عند أول تشغيل فقط إذا كان المحتوى أطول من القائمة (يُحفظ في الإعدادات)
+- بحث ضبابي (fuzzy) عبر difflib عند عدم التطابق الحرفي (يتحمّل الأخطاء المطبعية البسيطة)
+- عدّاد نتائج البحث في شريط الحالة + Escape يمسح البحث
+- خطوط القائمة مخزّنة مؤقتًا (أسرع بـ ~70 إنشاء خط لكل إعادة بناء)
+- اختصارات جديدة: F1 حول، Ctrl+, إعدادات، Ctrl+D تبديل الوضع
+- سجل تحسينات v3.2 (Changelog):
+- إصلاح عرض المؤقّت/بومودورو للمدد > 59 دقيقة (كانت تلتفّ إلى 00:00)
+- إصلاح حساب "الميلاد القادم" لتواريخ 29 فبراير (كان ينهار)
+- فحص المنافذ أصبح متوازيًا (أسرع ~50×) مع مؤشر تقدّم مباشر ونطاق أوسع
+- قناة آمنة لتحديث الواجهة من الخيوط (queue بدل after() من threads)
+- زر ⭐ لم يعد يمسح مدخلات الأداة الحالية عند التفضيل
+- لوحة الأوامر: تنقّل بـ ↑/↓ + Enter، وتظليل للعنصر المحدد
+- HTTP Client: PUT/DELETE/HEAD + ترويسات مخصصة + عرض حالة الاستجابة
+- المساعد الذكي: محادثة متعددة الأدوار + system prompt + محادثة جديدة
+- Regex: استبدال. Bulk Rename: دعم regex + حماية من الكتابة فوق الملفات
+- كاشف المكرّرات: حذف آمن مع تأكيد. Checksum: خوارزميات sha3/blake2
+- الملاحظات: حفظ تلقائي كل 30 ثانية
+- منع وميض نافذة الكونسول على Windows عند استدعاء أوامر خارجية
+- فحص رموز حالة HTTP في طبقة الشبكة + معالجة أخطاء أدق
+- ترجمة كل الرسائل المدمجة في الواجهة (لا عربية ثابتة في اللغات الأخرى)
 """
 
 from __future__ import annotations
@@ -23,20 +81,26 @@ import csv
 import ctypes
 import datetime as _dt
 import difflib
+import gc
 import hashlib
+import hmac
 import html
 import io
 import json
 import math
 import os
 import platform
+import queue
 import random
 import re
+import secrets
 import shutil
 import socket
 import string
+import struct
 import subprocess
 import sys
+import tarfile
 import threading
 import time
 import traceback
@@ -45,13 +109,14 @@ import urllib.request
 import uuid
 import webbrowser
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 # tkinter (يأتي مع بايثون) — نحتاج Canvas و filedialog
 try:
     import tkinter as tk
-    from tkinter import filedialog
+    from tkinter import filedialog, messagebox
 except Exception:  # pragma: no cover
     print("[!] tkinter غير مثبت. على Linux: sudo apt install python3-tk")
     sys.exit(1)
@@ -107,13 +172,14 @@ MISSING_HINTS = {
     "requests": "pip install requests",
     "qrcode":   "pip install qrcode[pil]",
     "Pillow":   "pip install Pillow",
+    "llama-cpp-python": "pip install llama-cpp-python",
 }
 
 # ─────────────────────────────────────────────────────────────
 # 【2】 الثوابت والمسارات
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "Ultimate Toolbox Pro"
-APP_VERSION = "3.1"
+APP_VERSION = "4.7.0"
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 F_SETTINGS = os.path.join(APP_DIR, "ultimate_toolbox_settings.json")
@@ -125,6 +191,12 @@ F_HISTORY  = os.path.join(APP_DIR, "polybuild_history.json")
 SUBPROCESS_TIMEOUT = 30          # لا subprocess بدون timeout
 NET_TIMEOUT = 12
 MAX_HISTORY = 100
+
+# ✦ v4.2: واجهة الإضافات — يجب أن تجاور toolbox.py؛ غيابها لا يُسقط التطبيق
+try:
+    import toolbox_api
+except Exception:                      # تشغيل من sandbox بلا toolbox_api
+    toolbox_api = None
 
 # لوحة الألوان: أسود/أحمر
 PALETTE = {
@@ -350,6 +422,47 @@ _AR = {
     "News": "الأخبار", "URL Shortener": "اختصار الروابط", "Fun APIs": "خدمات ترفيهية",
     "AI Assistant": "المساعد الذكي", "Fake Data": "بيانات وهمية",
     "Random Picker": "اختيار عشوائي", "Lorem Ipsum": "نص تجريبي",
+    # مفاتيح v3.2
+    "Click a color to copy": "اضغط على أي لون لنسخه",
+    "One item per line": "سطر واحد لكل عنصر",
+    "3 stages: size → 8KB prefix → full hash": "ثلاث مراحل: الحجم ← بادئة 8KB ← التجزئة الكاملة",
+    "Keys are stored locally only.": "تُحفظ المفاتيح محليًا فقط في ملف الإعدادات",
+    "Safe: parsed via ast — no eval": "آمنة: تُحلَّل التعابير عبر ast — بلا eval",
+    "OpenAI-compatible endpoint; keys in Settings": "متوافق مع OpenAI؛ المفاتيح تُضبط في الإعدادات",
+    "polybuild.py not found — set it in Settings": "polybuild.py غير موجود — حدّده في الإعدادات",
+    "Restart the app to apply everything.": "أعد تشغيل التطبيق لتطبيق كل شيء.",
+    "psutil missing — limited info.": "psutil غير مثبت — التفاصيل محدودة.",
+    "Time is up!": "انتهى الوقت!",
+    "Break time!": "وقت الراحة!",
+    "Back to work!": "عودة إلى العمل!",
+    "Add OpenWeather key in Settings for more details.": "أضف مفتاح OpenWeather في الإعدادات لتفاصيل أدق.",
+    "Replace": "استبدال",
+    "New chat": "محادثة جديدة",
+    "Terminate process?": "إنهاء العملية؟",
+    "Delete duplicates?": "حذف الملفات المكرّرة؟",
+    "autosave every 30s": "حفظ تلقائي كل 30 ثانية",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "اسحب للأسفل ↓",
+    "{n} tools found": "تم العثور على {n} أداة",
+    # مفاتيح v4.1 — Local LLM (GGUF)
+    "Local LLM": "نموذج لغوي محلي",
+    "Run GGUF models locally — 100% offline": "شغّل نماذج GGUF محليًا — دون اتصال 100%",
+    "Model": "الموديل", "GGUF model file": "ملف GGUF",
+    "Load model": "تحميل الموديل", "Unload model": "إخراج الموديل",
+    "Model info": "معلومات الموديل", "Configuration": "الضبط",
+    "Context size": "حجم السياق", "GPU layers (0=CPU, -1=all)": "طبقات GPU (0=معالج، -1=الكل)",
+    "Threads": "الخيوط", "Temperature": "الحرارة", "Top P": "Top P",
+    "Max tokens": "أقصى عدد للرموز", "Repeat penalty": "عقوبة التكرار",
+    "System prompt": "تعليمات النظام", "Chat": "المحادثة", "Send": "إرسال",
+    "Generating…": "جارٍ التوليد…", "Stopped.": "توقف.",
+    "Model unloaded": "تم إخراج الموديل", "No model selected": "لم يُحدَّد موديل",
+    "Quantization": "التكميم", "Context length": "طول السياق",
+    "Architecture": "البنية", "Layers": "طبقات", "Vocabulary": "المفردات",
+    "Estimated RAM": "الذاكرة التقديرية", "Save chat": "حفظ المحادثة",
+    "Chat saved to": "حُفظت المحادثة في", "Recent models": "الموديلات الأخيرة",
+    "You": "أنت", "Assistant": "المساعد", "Your message": "رسالتك",
+    "Chat is empty": "المحادثة فارغة", "Model ready": "الموديل جاهز",
+    "First load can take a minute…": "التحميل الأول قد يستغرق دقيقة…",
 }
 
 _ZH = {
@@ -377,6 +490,28 @@ _ZH = {
     "Timer": "计时器", "Todo List": "待办事项", "Notes": "笔记",
     "Backup": "备份", "Weather": "天气", "Currency": "汇率", "Translate": "翻译",
     "News": "新闻", "Fake Data": "测试数据", "Time Zones": "时区",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "向下滚动查看更多 ↓",
+    "{n} tools found": "找到 {n} 个工具",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "本地大模型",
+    "Run GGUF models locally — 100% offline": "本地运行 GGUF 模型 — 100% 离线",
+    "Model": "模型", "GGUF model file": "GGUF 模型文件",
+    "Load model": "加载模型", "Unload model": "卸载模型",
+    "Model info": "模型信息", "Configuration": "参数配置",
+    "Context size": "上下文大小", "GPU layers (0=CPU, -1=all)": "GPU 层数 (0=CPU, -1=全部)",
+    "Threads": "线程数", "Temperature": "温度", "Top P": "Top P",
+    "Max tokens": "最大 Token 数", "Repeat penalty": "重复惩罚",
+    "System prompt": "系统提示词", "Chat": "对话", "Send": "发送",
+    "Generating…": "正在生成…", "Stopped.": "已停止。",
+    "Model unloaded": "模型已卸载", "No model selected": "未选择模型",
+    "Quantization": "量化格式", "Context length": "上下文长度",
+    "Architecture": "架构", "Layers": "层数", "Vocabulary": "词表大小",
+    "Estimated RAM": "预估内存", "Save chat": "保存对话",
+    "Chat saved to": "对话已保存到", "Recent models": "最近模型",
+    "You": "你", "Assistant": "助手", "Your message": "输入消息…",
+    "Chat is empty": "对话为空", "Model ready": "模型就绪",
+    "First load can take a minute…": "首次加载可能需要一分钟…",
 }
 
 _ES = {
@@ -405,6 +540,28 @@ _ES = {
     "Notes": "Notas", "Backup": "Copia de seguridad", "Weather": "Clima",
     "Currency": "Divisas", "Translate": "Traducir", "News": "Noticias",
     "Time Zones": "Zonas horarias", "Fake Data": "Datos de prueba",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "Desplázate para ver más ↓",
+    "{n} tools found": "Se encontraron {n} herramientas",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "LLM local",
+    "Run GGUF models locally — 100% offline": "Ejecuta modelos GGUF en local — 100% sin conexión",
+    "Model": "Modelo", "GGUF model file": "Archivo GGUF",
+    "Load model": "Cargar modelo", "Unload model": "Liberar modelo",
+    "Model info": "Info del modelo", "Configuration": "Parámetros",
+    "Context size": "Tamaño de contexto", "GPU layers (0=CPU, -1=all)": "Capas GPU (0=CPU, -1=todas)",
+    "Threads": "Hilos", "Temperature": "Temperatura", "Top P": "Top P",
+    "Max tokens": "Tokens máx.", "Repeat penalty": "Penalización por repetición",
+    "System prompt": "Prompt del sistema", "Chat": "Chat", "Send": "Enviar",
+    "Generating…": "Generando…", "Stopped.": "Detenido.",
+    "Model unloaded": "Modelo liberado", "No model selected": "Sin modelo seleccionado",
+    "Quantization": "Cuantización", "Context length": "Longitud de contexto",
+    "Architecture": "Arquitectura", "Layers": "Capas", "Vocabulary": "Vocabulario",
+    "Estimated RAM": "RAM estimada", "Save chat": "Guardar chat",
+    "Chat saved to": "Chat guardado en", "Recent models": "Modelos recientes",
+    "You": "Tú", "Assistant": "Asistente", "Your message": "Tu mensaje",
+    "Chat is empty": "El chat está vacío", "Model ready": "Modelo listo",
+    "First load can take a minute…": "La primera carga puede tardar un minuto…",
 }
 
 _FR = {
@@ -433,6 +590,28 @@ _FR = {
     "Timer": "Minuteur", "Todo List": "Tâches", "Notes": "Notes",
     "Backup": "Sauvegarde", "Weather": "Météo", "Currency": "Devises",
     "Translate": "Traduire", "News": "Actualités", "Time Zones": "Fuseaux horaires",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "Faites défiler pour voir plus ↓",
+    "{n} tools found": "{n} outils trouvés",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "LLM local",
+    "Run GGUF models locally — 100% offline": "Exécutez des modèles GGUF en local — 100 % hors ligne",
+    "Model": "Modèle", "GGUF model file": "Fichier GGUF",
+    "Load model": "Charger le modèle", "Unload model": "Décharger le modèle",
+    "Model info": "Infos du modèle", "Configuration": "Réglages",
+    "Context size": "Taille du contexte", "GPU layers (0=CPU, -1=all)": "Couches GPU (0=CPU, -1=tout)",
+    "Threads": "Threads", "Temperature": "Température", "Top P": "Top P",
+    "Max tokens": "Tokens max", "Repeat penalty": "Pénalité de répétition",
+    "System prompt": "Prompt système", "Chat": "Discussion", "Send": "Envoyer",
+    "Generating…": "Génération…", "Stopped.": "Arrêté.",
+    "Model unloaded": "Modèle déchargé", "No model selected": "Aucun modèle sélectionné",
+    "Quantization": "Quantification", "Context length": "Longueur du contexte",
+    "Architecture": "Architecture", "Layers": "Couches", "Vocabulary": "Vocabulaire",
+    "Estimated RAM": "RAM estimée", "Save chat": "Sauver la discussion",
+    "Chat saved to": "Discussion enregistrée dans", "Recent models": "Modèles récents",
+    "You": "Vous", "Assistant": "Assistant", "Your message": "Votre message",
+    "Chat is empty": "La discussion est vide", "Model ready": "Modèle prêt",
+    "First load can take a minute…": "Le premier chargement peut prendre une minute…",
 }
 
 _RU = {
@@ -461,6 +640,28 @@ _RU = {
     "Notes": "Заметки", "Backup": "Резервная копия", "Weather": "Погода",
     "Currency": "Валюты", "Translate": "Перевод", "News": "Новости",
     "Time Zones": "Часовые пояса",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "Прокрутите вниз, чтобы увидеть больше ↓",
+    "{n} tools found": "Найдено инструментов: {n}",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "Локальная LLM",
+    "Run GGUF models locally — 100% offline": "Запуск GGUF-моделей локально — 100% офлайн",
+    "Model": "Модель", "GGUF model file": "GGUF-файл",
+    "Load model": "Загрузить модель", "Unload model": "Выгрузить модель",
+    "Model info": "О модели", "Configuration": "Параметры",
+    "Context size": "Размер контекста", "GPU layers (0=CPU, -1=all)": "Слои GPU (0=CPU, -1=все)",
+    "Threads": "Потоки", "Temperature": "Температура", "Top P": "Top P",
+    "Max tokens": "Макс. токенов", "Repeat penalty": "Штраф за повтор",
+    "System prompt": "Системный промпт", "Chat": "Чат", "Send": "Отправить",
+    "Generating…": "Генерация…", "Stopped.": "Остановлено.",
+    "Model unloaded": "Модель выгружена", "No model selected": "Модель не выбрана",
+    "Quantization": "Квантование", "Context length": "Длина контекста",
+    "Architecture": "Архитектура", "Layers": "Слои", "Vocabulary": "Словарь",
+    "Estimated RAM": "Оценка ОЗУ", "Save chat": "Сохранить чат",
+    "Chat saved to": "Чат сохранён в", "Recent models": "Недавние модели",
+    "You": "Вы", "Assistant": "Ассистент", "Your message": "Ваше сообщение",
+    "Chat is empty": "Чат пуст", "Model ready": "Модель готова",
+    "First load can take a minute…": "Первая загрузка может занять минуту…",
 }
 
 _PT = {
@@ -483,6 +684,28 @@ _PT = {
     "Currency": "Moedas", "Translate": "Traduzir", "News": "Notícias",
     "Password Generator": "Gerador de senhas", "QR Code": "Código QR",
     "Time Zones": "Fusos horários", "Date & Time": "Data e hora",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "Role para ver mais ↓",
+    "{n} tools found": "{n} ferramentas encontradas",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "LLM local",
+    "Run GGUF models locally — 100% offline": "Executa modelos GGUF localmente — 100% offline",
+    "Model": "Modelo", "GGUF model file": "Arquivo GGUF",
+    "Load model": "Carregar modelo", "Unload model": "Liberar modelo",
+    "Model info": "Info do modelo", "Configuration": "Parâmetros",
+    "Context size": "Tamanho do contexto", "GPU layers (0=CPU, -1=all)": "Camadas GPU (0=CPU, -1=todas)",
+    "Threads": "Threads", "Temperature": "Temperatura", "Top P": "Top P",
+    "Max tokens": "Tokens máx.", "Repeat penalty": "Penalidade de repetição",
+    "System prompt": "Prompt do sistema", "Chat": "Conversa", "Send": "Enviar",
+    "Generating…": "Gerando…", "Stopped.": "Parado.",
+    "Model unloaded": "Modelo liberado", "No model selected": "Nenhum modelo selecionado",
+    "Quantization": "Quantização", "Context length": "Comprimento do contexto",
+    "Architecture": "Arquitetura", "Layers": "Camadas", "Vocabulary": "Vocabulário",
+    "Estimated RAM": "RAM estimada", "Save chat": "Salvar conversa",
+    "Chat saved to": "Conversa salva em", "Recent models": "Modelos recentes",
+    "You": "Você", "Assistant": "Assistente", "Your message": "Sua mensagem",
+    "Chat is empty": "A conversa está vazia", "Model ready": "Modelo pronto",
+    "First load can take a minute…": "O primeiro carregamento pode levar um minuto…",
 }
 
 _HI = {
@@ -502,6 +725,28 @@ _HI = {
     "Calculator": "कैलकुलेटर", "Timer": "टाइमर", "Notes": "नोट्स",
     "Todo List": "कार्य सूची", "Weather": "मौसम", "News": "समाचार",
     "Translate": "अनुवाद", "QR Code": "क्यूआर कोड", "Time Zones": "समय क्षेत्र",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "और देखने के लिए नीचे स्क्रॉल करें ↓",
+    "{n} tools found": "{n} उपकरण मिले",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "लोकल LLM",
+    "Run GGUF models locally — 100% offline": "GGUF मॉडल लोकल चलाएँ — 100% ऑफ़लाइन",
+    "Model": "मॉडल", "GGUF model file": "GGUF फ़ाइल",
+    "Load model": "मॉडल लोड करें", "Unload model": "मॉडल हटाएँ",
+    "Model info": "मॉडल जानकारी", "Configuration": "कॉन्फ़िगरेशन",
+    "Context size": "कॉन्टेक्स्ट आकार", "GPU layers (0=CPU, -1=all)": "GPU लेयर (0=CPU, -1=सभी)",
+    "Threads": "थ्रेड", "Temperature": "टेम्परेचर", "Top P": "Top P",
+    "Max tokens": "अधिकतम टोकन", "Repeat penalty": "रिपीट पेनल्टी",
+    "System prompt": "सिस्टम प्रॉम्प्ट", "Chat": "चैट", "Send": "भेजें",
+    "Generating…": "जनरेट हो रहा है…", "Stopped.": "रुक गया।",
+    "Model unloaded": "मॉडल हटा दिया", "No model selected": "कोई मॉडल चयनित नहीं",
+    "Quantization": "क्वांटिज़ेशन", "Context length": "कॉन्टेक्स्ट लंबाई",
+    "Architecture": "आर्किटेक्चर", "Layers": "लेयर", "Vocabulary": "वोकैबुलरी",
+    "Estimated RAM": "अनुमानित RAM", "Save chat": "चैट सहेजें",
+    "Chat saved to": "चैट सहेजी गई:", "Recent models": "हाल के मॉडल",
+    "You": "आप", "Assistant": "असिस्टेंट", "Your message": "आपका संदेश",
+    "Chat is empty": "चैट खाली है", "Model ready": "मॉडल तैयार",
+    "First load can take a minute…": "पहली लोड में एक मिनट लग सकता है…",
 }
 
 _BN = {
@@ -520,6 +765,28 @@ _BN = {
     "Calculator": "ক্যালকুলেটর", "Timer": "টাইমার", "Notes": "নোট",
     "Todo List": "কাজের তালিকা", "Weather": "আবহাওয়া", "News": "সংবাদ",
     "Translate": "অনুবাদ", "QR Code": "কিউআর কোড", "Time Zones": "সময় অঞ্চল",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "আরও দেখতে নিচে স্ক্রল করুন ↓",
+    "{n} tools found": "{n}টি টুল পাওয়া গেছে",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "লোকাল LLM",
+    "Run GGUF models locally — 100% offline": "GGUF মডেল লোকালি চালান — ১০০% অফলাইন",
+    "Model": "মডেল", "GGUF model file": "GGUF ফাইল",
+    "Load model": "মডেল লোড করুন", "Unload model": "মডেল সরান",
+    "Model info": "মডেল তথ্য", "Configuration": "কনফিগারেশন",
+    "Context size": "কনটেক্সট সাইজ", "GPU layers (0=CPU, -1=all)": "GPU লেয়ার (0=CPU, -1=সব)",
+    "Threads": "থ্রেড", "Temperature": "টেম্পারেচার", "Top P": "Top P",
+    "Max tokens": "সর্বোচ্চ টোকেন", "Repeat penalty": "রিপিট পেনাল্টি",
+    "System prompt": "সিস্টেম প্রম্পট", "Chat": "চ্যাট", "Send": "পাঠান",
+    "Generating…": "জেনারেট হচ্ছে…", "Stopped.": "থামানো হয়েছে।",
+    "Model unloaded": "মডেল সরানো হয়েছে", "No model selected": "কোনো মডেল নির্বাচিত নয়",
+    "Quantization": "কোয়ান্টাইজেশন", "Context length": "কনটেক্সট দৈর্ঘ্য",
+    "Architecture": "আর্কিটেকচার", "Layers": "লেয়ার", "Vocabulary": "ভোকাবুলারি",
+    "Estimated RAM": "আনুমানিক RAM", "Save chat": "চ্যাট সংরক্ষণ",
+    "Chat saved to": "চ্যাট সংরক্ষিত:", "Recent models": "সাম্প্রতিক মডেল",
+    "You": "আপনি", "Assistant": "অ্যাসিস্ট্যান্ট", "Your message": "আপনার বার্তা",
+    "Chat is empty": "চ্যাট খালি", "Model ready": "মডেল প্রস্তুত",
+    "First load can take a minute…": "প্রথম লোডে এক মিনিট লাগতে পারে…",
 }
 
 _UR = {
@@ -538,12 +805,1055 @@ _UR = {
     "Calculator": "کیلکولیٹر", "Timer": "ٹائمر", "Notes": "نوٹس",
     "Todo List": "فہرست کام", "Weather": "موسم", "News": "خبریں",
     "Translate": "ترجمہ", "QR Code": "کیو آر کوڈ", "Time Zones": "ٹائم زونز",
+    # مفاتيح v4.0 Phase 1
+    "Scroll for more ↓": "مزید دیکھنے کے لیے نیچے اسکرول کریں ↓",
+    "{n} tools found": "{n} ٹولز مل گئے",
+    # v4.1 — Local LLM (GGUF)
+    "Local LLM": "لوکل LLM",
+    "Run GGUF models locally — 100% offline": "GGUF ماڈلز لوکل چلائیں — 100% آف لائن",
+    "Model": "ماڈل", "GGUF model file": "GGUF فائل",
+    "Load model": "ماڈل لوڈ کریں", "Unload model": "ماڈل ہٹائیں",
+    "Model info": "ماڈل کی معلومات", "Configuration": "پیرامیٹرز",
+    "Context size": "کانٹیکسٹ سائز", "GPU layers (0=CPU, -1=all)": "GPU لیئرز (0=CPU، -1=سب)",
+    "Threads": "تھریڈز", "Temperature": "ٹمپریچر", "Top P": "Top P",
+    "Max tokens": "زیادہ سے زیادہ ٹوکن", "Repeat penalty": "ریپیٹ پینلٹی",
+    "System prompt": "سسٹم پرامپٹ", "Chat": "چیٹ", "Send": "بھیجیں",
+    "Generating…": "تولید جاری ہے…", "Stopped.": "روک دیا گیا۔",
+    "Model unloaded": "ماڈل ہٹا دیا گیا", "No model selected": "کوئی ماڈل منتخب نہیں",
+    "Quantization": "کوانٹائزیشن", "Context length": "کانٹیکسٹ لمبائی",
+    "Architecture": "آرکیٹیکچر", "Layers": "لیئرز", "Vocabulary": "وکیبولری",
+    "Estimated RAM": "تخمینی RAM", "Save chat": "چیٹ محفوظ کریں",
+    "Chat saved to": "چیٹ محفوظ ہوگئی:", "Recent models": "حالیہ ماڈلز",
+    "You": "آپ", "Assistant": "اسسٹنٹ", "Your message": "آپ کا پیغام",
+    "Chat is empty": "چیٹ خالی ہے", "Model ready": "ماڈل تیار ہے",
+    "First load can take a minute…": "پہلی لوڈ میں ایک منٹ لگ سکتا ہے…",
 }
 
 TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "en": {}, "ar": _AR, "zh": _ZH, "es": _ES, "fr": _FR,
     "ru": _RU, "pt": _PT, "hi": _HI, "bn": _BN, "ur": _UR,
 }
+
+# ✦ v4.2: مفاتيح نظام الإضافات — تُدمج هنا بدل تعديل كل قاموس لغة يدويًا
+_PLUG_T: Dict[str, Dict[str, str]] = {
+    "ar": {
+        "Plugins": "الإضافات",
+        "{n} plugins loaded": "تم تحميل {n} إضافة",
+        "Plugin error: {name}": "خطأ في الإضافة: {name}",
+        "Plugin crashed": "تعطّلت الإضافة",
+    },
+    "zh": {
+        "Plugins": "插件",
+        "{n} plugins loaded": "已加载 {n} 个插件",
+        "Plugin error: {name}": "插件错误：{name}",
+        "Plugin crashed": "插件已崩溃",
+    },
+    "es": {
+        "Plugins": "Complementos",
+        "{n} plugins loaded": "{n} complemento(s) cargado(s)",
+        "Plugin error: {name}": "Error del complemento: {name}",
+        "Plugin crashed": "El complemento falló",
+    },
+    "fr": {
+        "Plugins": "Extensions",
+        "{n} plugins loaded": "{n} extension(s) chargée(s)",
+        "Plugin error: {name}": "Erreur du plugin : {name}",
+        "Plugin crashed": "Le plugin a planté",
+    },
+    "ru": {
+        "Plugins": "Плагины",
+        "{n} plugins loaded": "Загружено плагинов: {n}",
+        "Plugin error: {name}": "Ошибка плагина: {name}",
+        "Plugin crashed": "Сбой плагина",
+    },
+    "pt": {
+        "Plugins": "Plugins",
+        "{n} plugins loaded": "{n} plugin(s) carregado(s)",
+        "Plugin error: {name}": "Erro do plugin: {name}",
+        "Plugin crashed": "O plugin falhou",
+    },
+    "hi": {
+        "Plugins": "प्लगइन्स",
+        "{n} plugins loaded": "{n} प्लगइन लोड हुए",
+        "Plugin error: {name}": "प्लगइन त्रुटि: {name}",
+        "Plugin crashed": "प्लगइन क्रैश हो गया",
+    },
+    "bn": {
+        "Plugins": "প্লাগইন",
+        "{n} plugins loaded": "{n}টি প্লাগইন লোড হয়েছে",
+        "Plugin error: {name}": "প্লাগইন ত্রুটি: {name}",
+        "Plugin crashed": "প্লাগইন ক্র্যাশ করেছে",
+    },
+    "ur": {
+        "Plugins": "پلگ انز",
+        "{n} plugins loaded": "{n} پلگ انز لوڈ ہوئے",
+        "Plugin error: {name}": "پلگ ان میں خرابی: {name}",
+        "Plugin crashed": "پلگ ان کراش ہو گیا",
+    },
+}
+for _l, _m in _PLUG_T.items():
+    TRANSLATIONS.setdefault(_l, {}).update(_m)
+del _l, _m
+
+# ✦ v4.3: مفاتيح محرّكات LLM الخلفية (خادم llama.cpp) — تُدمج بنفس أسلوب الإضافات
+_LLM_T: Dict[str, Dict[str, str]] = {
+    "ar": {
+        "Backend": "المحرّك الخلفي",
+        "In-process (llama-cpp-python)": "داخلي (llama-cpp-python)",
+        "llama.cpp Server (running)": "خادم llama.cpp (يعمل حاليًا)",
+        "llama.cpp Server (auto-start)": "خادم llama.cpp (تشغيل تلقائي)",
+        "Server URL": "عنوان الخادم",
+        "llama-server executable": "ملف llama-server التنفيذي",
+        "Port": "المنفذ",
+        "Server ready": "الخادم جاهز",
+        "Server not responding": "الخادم لا يستجيب",
+        "Failed to start llama-server": "فشل تشغيل llama-server",
+        "Install help": "مساعدة التثبيت",
+        "Install help copied": "نُسخت مساعدة التثبيت",
+        "Connecting…": "جارٍ الاتصال…",
+    },
+    "zh": {
+        "Backend": "后端",
+        "In-process (llama-cpp-python)": "进程内 (llama-cpp-python)",
+        "llama.cpp Server (running)": "llama.cpp 服务器（已运行）",
+        "llama.cpp Server (auto-start)": "llama.cpp 服务器（自动启动）",
+        "Server URL": "服务器地址",
+        "llama-server executable": "llama-server 可执行文件",
+        "Port": "端口",
+        "Server ready": "服务器已就绪",
+        "Server not responding": "服务器无响应",
+        "Failed to start llama-server": "启动 llama-server 失败",
+        "Install help": "安装帮助",
+        "Install help copied": "安装帮助已复制",
+        "Connecting…": "连接中…",
+    },
+    "es": {
+        "Backend": "Motor",
+        "In-process (llama-cpp-python)": "Interno (llama-cpp-python)",
+        "llama.cpp Server (running)": "Servidor llama.cpp (en ejecución)",
+        "llama.cpp Server (auto-start)": "Servidor llama.cpp (inicio automático)",
+        "Server URL": "URL del servidor",
+        "llama-server executable": "Ejecutable de llama-server",
+        "Port": "Puerto",
+        "Server ready": "Servidor listo",
+        "Server not responding": "El servidor no responde",
+        "Failed to start llama-server": "No se pudo iniciar llama-server",
+        "Install help": "Ayuda de instalación",
+        "Install help copied": "Ayuda de instalación copiada",
+        "Connecting…": "Conectando…",
+    },
+    "fr": {
+        "Backend": "Moteur",
+        "In-process (llama-cpp-python)": "Intégré (llama-cpp-python)",
+        "llama.cpp Server (running)": "Serveur llama.cpp (en cours)",
+        "llama.cpp Server (auto-start)": "Serveur llama.cpp (démarrage auto)",
+        "Server URL": "URL du serveur",
+        "llama-server executable": "Exécutable llama-server",
+        "Port": "Port",
+        "Server ready": "Serveur prêt",
+        "Server not responding": "Le serveur ne répond pas",
+        "Failed to start llama-server": "Échec du démarrage de llama-server",
+        "Install help": "Aide à l'installation",
+        "Install help copied": "Aide à l'installation copiée",
+        "Connecting…": "Connexion…",
+    },
+    "ru": {
+        "Backend": "Движок",
+        "In-process (llama-cpp-python)": "Встроенный (llama-cpp-python)",
+        "llama.cpp Server (running)": "Сервер llama.cpp (запущен)",
+        "llama.cpp Server (auto-start)": "Сервер llama.cpp (автозапуск)",
+        "Server URL": "URL сервера",
+        "llama-server executable": "Исполняемый файл llama-server",
+        "Port": "Порт",
+        "Server ready": "Сервер готов",
+        "Server not responding": "Сервер не отвечает",
+        "Failed to start llama-server": "Не удалось запустить llama-server",
+        "Install help": "Справка по установке",
+        "Install help copied": "Справка скопирована",
+        "Connecting…": "Подключение…",
+    },
+    "pt": {
+        "Backend": "Motor",
+        "In-process (llama-cpp-python)": "Interno (llama-cpp-python)",
+        "llama.cpp Server (running)": "Servidor llama.cpp (em execução)",
+        "llama.cpp Server (auto-start)": "Servidor llama.cpp (início automático)",
+        "Server URL": "URL do servidor",
+        "llama-server executable": "Executável do llama-server",
+        "Port": "Porta",
+        "Server ready": "Servidor pronto",
+        "Server not responding": "O servidor não responde",
+        "Failed to start llama-server": "Falha ao iniciar o llama-server",
+        "Install help": "Ajuda de instalação",
+        "Install help copied": "Ajuda de instalação copiada",
+        "Connecting…": "Conectando…",
+    },
+    "hi": {
+        "Backend": "बैकएंड",
+        "In-process (llama-cpp-python)": "इन-प्रोसेस (llama-cpp-python)",
+        "llama.cpp Server (running)": "llama.cpp सर्वर (चल रहा है)",
+        "llama.cpp Server (auto-start)": "llama.cpp सर्वर (ऑटो-स्टार्ट)",
+        "Server URL": "सर्वर URL",
+        "llama-server executable": "llama-server एक्ज़ीक्यूटेबल",
+        "Port": "पोर्ट",
+        "Server ready": "सर्वर तैयार है",
+        "Server not responding": "सर्वर प्रतिक्रिया नहीं दे रहा",
+        "Failed to start llama-server": "llama-server शुरू करने में विफल",
+        "Install help": "इंस्टॉल सहायता",
+        "Install help copied": "इंस्टॉल सहायता कॉपी हो गई",
+        "Connecting…": "कनेक्ट हो रहा है…",
+    },
+    "bn": {
+        "Backend": "ব্যাকএন্ড",
+        "In-process (llama-cpp-python)": "ইন-প্রসেস (llama-cpp-python)",
+        "llama.cpp Server (running)": "llama.cpp সার্ভার (চলছে)",
+        "llama.cpp Server (auto-start)": "llama.cpp সার্ভার (অটো-স্টার্ট)",
+        "Server URL": "সার্ভার URL",
+        "llama-server executable": "llama-server এক্সিকিউটেবল",
+        "Port": "পোর্ট",
+        "Server ready": "সার্ভার প্রস্তুত",
+        "Server not responding": "সার্ভার সাড়া দিচ্ছে না",
+        "Failed to start llama-server": "llama-server চালু করতে ব্যর্থ",
+        "Install help": "ইনস্টল সহায়তা",
+        "Install help copied": "ইনস্টল সহায়তা কপি হয়েছে",
+        "Connecting…": "সংযোগ করা হচ্ছে…",
+    },
+    "ur": {
+        "Backend": "بیک اینڈ",
+        "In-process (llama-cpp-python)": "ان پروسس (llama-cpp-python)",
+        "llama.cpp Server (running)": "llama.cpp سرور (چل رہا ہے)",
+        "llama.cpp Server (auto-start)": "llama.cpp سرور (خودکار آغاز)",
+        "Server URL": "سرور URL",
+        "llama-server executable": "llama-server ایگزیکیوٹبل",
+        "Port": "پورٹ",
+        "Server ready": "سرور تیار ہے",
+        "Server not responding": "سرور جواب نہیں دے رہا",
+        "Failed to start llama-server": "llama-server شروع کرنے میں ناکامی",
+        "Install help": "انسٹالیشن مدد",
+        "Install help copied": "انسٹالیشن مدد کاپی ہوگئی",
+        "Connecting…": "جڑ رہا ہے…",
+    },
+}
+for _l, _m in _LLM_T.items():
+    TRANSLATIONS.setdefault(_l, {}).update(_m)
+del _l, _m
+
+# ✦ v4.4: مفاتيح التنزيل التلقائي (llama-server + موديلات GGUF) — بنفس أسلوب _LLM_T
+_LLMDL_T: Dict[str, Dict[str, str]] = {
+    "ar": {
+        "Build": "النسخة",
+        "Auto (recommended)": "تلقائي (موصى به)",
+        "CPU build": "نسخة CPU",
+        "CUDA build (NVIDIA)": "نسخة CUDA (NVIDIA)",
+        "Vulkan build": "نسخة Vulkan",
+        "Download llama-server": "تنزيل llama-server",
+        "Download model": "تنزيل موديل",
+        "Model": "الموديل",
+        "Fetching release info…": "جلب معلومات الإصدار…",
+        "Extracting…": "جارٍ الاستخراج…",
+        "Starting download…": "جارٍ بدء التنزيل…",
+        "Download complete": "اكتمل التنزيل",
+        "Download failed": "فشل التنزيل",
+        "Canceled": "أُلغي",
+        "Saved to": "حُفظ في",
+        "Model downloaded": "تم تنزيل الموديل",
+    },
+    "zh": {
+        "Build": "构建版本",
+        "Auto (recommended)": "自动（推荐）",
+        "CPU build": "CPU 构建",
+        "CUDA build (NVIDIA)": "CUDA 构建（NVIDIA）",
+        "Vulkan build": "Vulkan 构建",
+        "Download llama-server": "下载 llama-server",
+        "Download model": "下载模型",
+        "Model": "模型",
+        "Fetching release info…": "获取发布信息…",
+        "Extracting…": "解压中…",
+        "Starting download…": "开始下载…",
+        "Download complete": "下载完成",
+        "Download failed": "下载失败",
+        "Canceled": "已取消",
+        "Saved to": "已保存到",
+        "Model downloaded": "模型已下载",
+    },
+    "es": {
+        "Build": "Versión",
+        "Auto (recommended)": "Automático (recomendado)",
+        "CPU build": "Versión CPU",
+        "CUDA build (NVIDIA)": "Versión CUDA (NVIDIA)",
+        "Vulkan build": "Versión Vulkan",
+        "Download llama-server": "Descargar llama-server",
+        "Download model": "Descargar modelo",
+        "Model": "Modelo",
+        "Fetching release info…": "Obteniendo información de la versión…",
+        "Extracting…": "Extrayendo…",
+        "Starting download…": "Iniciando descarga…",
+        "Download complete": "Descarga completa",
+        "Download failed": "Descarga fallida",
+        "Canceled": "Cancelado",
+        "Saved to": "Guardado en",
+        "Model downloaded": "Modelo descargado",
+    },
+    "fr": {
+        "Build": "Version",
+        "Auto (recommended)": "Auto (recommandé)",
+        "CPU build": "Version CPU",
+        "CUDA build (NVIDIA)": "Version CUDA (NVIDIA)",
+        "Vulkan build": "Version Vulkan",
+        "Download llama-server": "Télécharger llama-server",
+        "Download model": "Télécharger un modèle",
+        "Model": "Modèle",
+        "Fetching release info…": "Récupération des infos de version…",
+        "Extracting…": "Extraction…",
+        "Starting download…": "Démarrage du téléchargement…",
+        "Download complete": "Téléchargement terminé",
+        "Download failed": "Échec du téléchargement",
+        "Canceled": "Annulé",
+        "Saved to": "Enregistré sous",
+        "Model downloaded": "Modèle téléchargé",
+    },
+    "ru": {
+        "Build": "Версия",
+        "Auto (recommended)": "Авто (рекомендуется)",
+        "CPU build": "Версия CPU",
+        "CUDA build (NVIDIA)": "Версия CUDA (NVIDIA)",
+        "Vulkan build": "Версия Vulkan",
+        "Download llama-server": "Скачать llama-server",
+        "Download model": "Скачать модель",
+        "Model": "Модель",
+        "Fetching release info…": "Получение данных о релизе…",
+        "Extracting…": "Распаковка…",
+        "Starting download…": "Начало загрузки…",
+        "Download complete": "Загрузка завершена",
+        "Download failed": "Ошибка загрузки",
+        "Canceled": "Отменено",
+        "Saved to": "Сохранено в",
+        "Model downloaded": "Модель загружена",
+    },
+    "pt": {
+        "Build": "Versão",
+        "Auto (recommended)": "Automático (recomendado)",
+        "CPU build": "Versão CPU",
+        "CUDA build (NVIDIA)": "Versão CUDA (NVIDIA)",
+        "Vulkan build": "Versão Vulkan",
+        "Download llama-server": "Baixar llama-server",
+        "Download model": "Baixar modelo",
+        "Model": "Modelo",
+        "Fetching release info…": "Obtendo informações da versão…",
+        "Extracting…": "Extraindo…",
+        "Starting download…": "Iniciando download…",
+        "Download complete": "Download concluído",
+        "Download failed": "Falha no download",
+        "Canceled": "Cancelado",
+        "Saved to": "Salvo em",
+        "Model downloaded": "Modelo baixado",
+    },
+    "hi": {
+        "Build": "बिल्ड",
+        "Auto (recommended)": "ऑटो (अनुशंसित)",
+        "CPU build": "CPU बिल्ड",
+        "CUDA build (NVIDIA)": "CUDA बिल्ड (NVIDIA)",
+        "Vulkan build": "Vulkan बिल्ड",
+        "Download llama-server": "llama-server डाउनलोड करें",
+        "Download model": "मॉडल डाउनलोड करें",
+        "Model": "मॉडल",
+        "Fetching release info…": "रिलीज़ जानकारी प्राप्त कर रहे हैं…",
+        "Extracting…": "निकाल रहे हैं…",
+        "Starting download…": "डाउनलोड शुरू हो रहा है…",
+        "Download complete": "डाउनलोड पूरा",
+        "Download failed": "डाउनलोड विफल",
+        "Canceled": "रद्द",
+        "Saved to": "सहेजा गया",
+        "Model downloaded": "मॉडल डाउनलोड हुआ",
+    },
+    "bn": {
+        "Build": "বিল্ড",
+        "Auto (recommended)": "অটো (সুপারিশকৃত)",
+        "CPU build": "CPU বিল্ড",
+        "CUDA build (NVIDIA)": "CUDA বিল্ড (NVIDIA)",
+        "Vulkan build": "Vulkan বিল্ড",
+        "Download llama-server": "llama-server ডাউনলোড করুন",
+        "Download model": "মডেল ডাউনলোড করুন",
+        "Model": "মডেল",
+        "Fetching release info…": "রিলিজ তথ্য আনা হচ্ছে…",
+        "Extracting…": "বের করা হচ্ছে…",
+        "Starting download…": "ডাউনলোড শুরু হচ্ছে…",
+        "Download complete": "ডাউনলোড সম্পূর্ণ",
+        "Download failed": "ডাউনলোড ব্যর্থ",
+        "Canceled": "বাতিল",
+        "Saved to": "সংরক্ষিত হয়েছে",
+        "Model downloaded": "মডেল ডাউনলোড হয়েছে",
+    },
+    "ur": {
+        "Build": "بلڈ",
+        "Auto (recommended)": "خودکار (تجویز کردہ)",
+        "CPU build": "CPU بلڈ",
+        "CUDA build (NVIDIA)": "CUDA بلڈ (NVIDIA)",
+        "Vulkan build": "Vulkan بلڈ",
+        "Download llama-server": "llama-server ڈاؤن لوڈ کریں",
+        "Download model": "ماڈل ڈاؤن لوڈ کریں",
+        "Model": "ماڈل",
+        "Fetching release info…": "ریلیز کی معلومات حاصل کی جا رہی ہیں…",
+        "Extracting…": "نکالا جا رہا ہے…",
+        "Starting download…": "ڈاؤن لوڈ شروع ہو رہا ہے…",
+        "Download complete": "ڈاؤن لوڈ مکمل",
+        "Download failed": "ڈاؤن لوڈ ناکام",
+        "Canceled": "منسوخ",
+        "Saved to": "محفوظ کیا گیا",
+        "Model downloaded": "ماڈل ڈاؤن لوڈ ہو گیا",
+    },
+}
+for _l, _m in _LLMDL_T.items():
+    TRANSLATIONS.setdefault(_l, {}).update(_m)
+del _l, _m
+
+# ✦ v4.5: مفاتيح التفكير العميق + الخزائن المشفّرة — بنفس أسلوب _LLMDL_T
+# (URL/Notes/Generate موجودة مسبقًا في TRANSLATIONS وتُعاد استخدامها)
+_V45_T: Dict[str, Dict[str, str]] = {
+    "ar": {
+        "Deep thinking": "التفكير العميق",
+        "Thinking hidden": "التفكير مخفي",
+        "Download large model": "تنزيل موديل كبير",
+        "Vault": "الخزنة",
+        "Encrypted vault — master password + PBKDF2":
+            "خزنة مشفّرة — كلمة سر رئيسية + PBKDF2",
+        "Vault file": "ملف الخزنة",
+        "Vault name": "اسم الخزنة",
+        "Vault name exists": "اسم الخزنة موجود مسبقًا",
+        "Master password": "الكلمة السر الرئيسية",
+        "Unlock": "فتح",
+        "Lock": "قفل",
+        "New vault": "خزنة جديدة",
+        "Delete vault": "حذف الخزنة",
+        "Change password": "تغيير الكلمة السر",
+        "New password": "كلمة سر جديدة",
+        "Confirm password": "تأكيد الكلمة السر",
+        "Vault locked": "أُقفلت الخزنة",
+        "Vault auto-locked (idle)": "أُقفلت الخزنة تلقائيًا (خمول)",
+        "Wrong master password": "كلمة السر الرئيسية خاطئة",
+        "Vault corrupted": "ملف الخزنة تالف",
+        "Invalid vault name": "اسم خزنة غير صالح",
+        "Vault created": "أُنشئت الخزنة",
+        "Vault deleted": "حُذفت الخزنة",
+        "Master passwords do not match": "الكلمتان السرّيتان غير متطابقتين",
+        "Password too short (min 4)": "الكلمة السر قصيرة (4 أحرف على الأقل)",
+        "Entries": "الإدخالات",
+        "Add entry": "إضافة إدخال",
+        "Edit entry": "تعديل إدخال",
+        "Title": "العنوان",
+        "Username": "اسم المستخدم",
+        "Password": "كلمة السر",
+        "Save entry": "حفظ الإدخال",
+        "Entry saved": "حُفظ الإدخال",
+        "Delete entry": "حذف الإدخال",
+        "Search…": "بحث…",
+        "copied (clears in 30s)": "نُسخ (يُمسح من الحافظة بعد 30 ثانية)",
+        "Clear form": "تفريغ النموذج",
+    },
+    "zh": {
+        "Deep thinking": "深度思考",
+        "Thinking hidden": "已隐藏思考",
+        "Download large model": "下载大型模型",
+        "Vault": "密码金库",
+        "Encrypted vault — master password + PBKDF2": "加密金库 — 主密码 + PBKDF2",
+        "Vault file": "金库文件",
+        "Vault name": "金库名称",
+        "Vault name exists": "金库名称已存在",
+        "Master password": "主密码",
+        "Unlock": "解锁",
+        "Lock": "锁定",
+        "New vault": "新建金库",
+        "Delete vault": "删除金库",
+        "Change password": "更改主密码",
+        "New password": "新密码",
+        "Confirm password": "确认密码",
+        "Vault locked": "金库已锁定",
+        "Vault auto-locked (idle)": "金库已自动锁定（空闲）",
+        "Wrong master password": "主密码错误",
+        "Vault corrupted": "金库文件损坏",
+        "Invalid vault name": "金库名称无效",
+        "Vault created": "金库已创建",
+        "Vault deleted": "金库已删除",
+        "Master passwords do not match": "两次输入的密码不一致",
+        "Password too short (min 4)": "密码太短（至少 4 位）",
+        "Entries": "条目",
+        "Add entry": "添加条目",
+        "Edit entry": "编辑条目",
+        "Title": "标题",
+        "Username": "用户名",
+        "Password": "密码",
+        "Save entry": "保存条目",
+        "Entry saved": "条目已保存",
+        "Delete entry": "删除条目",
+        "Search…": "搜索…",
+        "copied (clears in 30s)": "已复制（30 秒后自动清除）",
+        "Clear form": "清空表单",
+    },
+    "es": {
+        "Deep thinking": "Razonamiento profundo",
+        "Thinking hidden": "Razonamiento oculto",
+        "Download large model": "Descargar modelo grande",
+        "Vault": "Bóveda",
+        "Encrypted vault — master password + PBKDF2":
+            "Bóveda cifrada — contraseña maestra + PBKDF2",
+        "Vault file": "Archivo de bóveda",
+        "Vault name": "Nombre de la bóveda",
+        "Vault name exists": "El nombre de la bóveda ya existe",
+        "Master password": "Contraseña maestra",
+        "Unlock": "Desbloquear",
+        "Lock": "Bloquear",
+        "New vault": "Nueva bóveda",
+        "Delete vault": "Eliminar bóveda",
+        "Change password": "Cambiar contraseña",
+        "New password": "Nueva contraseña",
+        "Confirm password": "Confirmar contraseña",
+        "Vault locked": "Bóveda bloqueada",
+        "Vault auto-locked (idle)": "Bóveda bloqueada automáticamente (inactividad)",
+        "Wrong master password": "Contraseña maestra incorrecta",
+        "Vault corrupted": "Archivo de bóveda dañado",
+        "Invalid vault name": "Nombre de bóveda no válido",
+        "Vault created": "Bóveda creada",
+        "Vault deleted": "Bóveda eliminada",
+        "Master passwords do not match": "Las contraseñas no coinciden",
+        "Password too short (min 4)": "Contraseña demasiado corta (mín. 4)",
+        "Entries": "Entradas",
+        "Add entry": "Añadir entrada",
+        "Edit entry": "Editar entrada",
+        "Title": "Título",
+        "Username": "Usuario",
+        "Password": "Contraseña",
+        "Save entry": "Guardar entrada",
+        "Entry saved": "Entrada guardada",
+        "Delete entry": "Eliminar entrada",
+        "Search…": "Buscar…",
+        "copied (clears in 30s)": "copiado (se borra en 30 s)",
+        "Clear form": "Limpiar formulario",
+    },
+    "fr": {
+        "Deep thinking": "Raisonnement approfondi",
+        "Thinking hidden": "Raisonnement masqué",
+        "Download large model": "Télécharger un grand modèle",
+        "Vault": "Coffre-fort",
+        "Encrypted vault — master password + PBKDF2":
+            "Coffre chiffré — mot de passe maître + PBKDF2",
+        "Vault file": "Fichier du coffre",
+        "Vault name": "Nom du coffre",
+        "Vault name exists": "Ce nom de coffre existe déjà",
+        "Master password": "Mot de passe maître",
+        "Unlock": "Déverrouiller",
+        "Lock": "Verrouiller",
+        "New vault": "Nouveau coffre",
+        "Delete vault": "Supprimer le coffre",
+        "Change password": "Changer le mot de passe",
+        "New password": "Nouveau mot de passe",
+        "Confirm password": "Confirmer le mot de passe",
+        "Vault locked": "Coffre verrouillé",
+        "Vault auto-locked (idle)": "Coffre verrouillé automatiquement (inactivité)",
+        "Wrong master password": "Mot de passe maître incorrect",
+        "Vault corrupted": "Fichier de coffre corrompu",
+        "Invalid vault name": "Nom de coffre non valide",
+        "Vault created": "Coffre créé",
+        "Vault deleted": "Coffre supprimé",
+        "Master passwords do not match": "Les mots de passe ne correspondent pas",
+        "Password too short (min 4)": "Mot de passe trop court (min. 4)",
+        "Entries": "Entrées",
+        "Add entry": "Ajouter une entrée",
+        "Edit entry": "Modifier l'entrée",
+        "Title": "Titre",
+        "Username": "Nom d'utilisateur",
+        "Password": "Mot de passe",
+        "Save entry": "Enregistrer l'entrée",
+        "Entry saved": "Entrée enregistrée",
+        "Delete entry": "Supprimer l'entrée",
+        "Search…": "Rechercher…",
+        "copied (clears in 30s)": "copié (effacé dans 30 s)",
+        "Clear form": "Vider le formulaire",
+    },
+    "ru": {
+        "Deep thinking": "Глубокое размышление",
+        "Thinking hidden": "Размышления скрыты",
+        "Download large model": "Скачать большую модель",
+        "Vault": "Хранилище",
+        "Encrypted vault — master password + PBKDF2":
+            "Зашифрованное хранилище — мастер-пароль + PBKDF2",
+        "Vault file": "Файл хранилища",
+        "Vault name": "Имя хранилища",
+        "Vault name exists": "Такое имя хранилища уже существует",
+        "Master password": "Мастер-пароль",
+        "Unlock": "Разблокировать",
+        "Lock": "Заблокировать",
+        "New vault": "Новое хранилище",
+        "Delete vault": "Удалить хранилище",
+        "Change password": "Сменить пароль",
+        "New password": "Новый пароль",
+        "Confirm password": "Подтвердите пароль",
+        "Vault locked": "Хранилище заблокировано",
+        "Vault auto-locked (idle)": "Хранилище заблокировано (простой)",
+        "Wrong master password": "Неверный мастер-пароль",
+        "Vault corrupted": "Файл хранилища повреждён",
+        "Invalid vault name": "Недопустимое имя хранилища",
+        "Vault created": "Хранилище создано",
+        "Vault deleted": "Хранилище удалено",
+        "Master passwords do not match": "Пароли не совпадают",
+        "Password too short (min 4)": "Пароль слишком короткий (мин. 4)",
+        "Entries": "Записи",
+        "Add entry": "Добавить запись",
+        "Edit entry": "Изменить запись",
+        "Title": "Название",
+        "Username": "Имя пользователя",
+        "Password": "Пароль",
+        "Save entry": "Сохранить запись",
+        "Entry saved": "Запись сохранена",
+        "Delete entry": "Удалить запись",
+        "Search…": "Поиск…",
+        "copied (clears in 30s)": "скопировано (очистка через 30 с)",
+        "Clear form": "Очистить форму",
+    },
+    "pt": {
+        "Deep thinking": "Raciocínio profundo",
+        "Thinking hidden": "Raciocínio oculto",
+        "Download large model": "Baixar modelo grande",
+        "Vault": "Cofre",
+        "Encrypted vault — master password + PBKDF2":
+            "Cofre criptografado — senha mestra + PBKDF2",
+        "Vault file": "Arquivo do cofre",
+        "Vault name": "Nome do cofre",
+        "Vault name exists": "Nome do cofre já existe",
+        "Master password": "Senha mestra",
+        "Unlock": "Desbloquear",
+        "Lock": "Bloquear",
+        "New vault": "Novo cofre",
+        "Delete vault": "Excluir cofre",
+        "Change password": "Alterar senha",
+        "New password": "Nova senha",
+        "Confirm password": "Confirmar senha",
+        "Vault locked": "Cofre bloqueado",
+        "Vault auto-locked (idle)": "Cofre bloqueado automaticamente (inatividade)",
+        "Wrong master password": "Senha mestra incorreta",
+        "Vault corrupted": "Arquivo do cofre corrompido",
+        "Invalid vault name": "Nome de cofre inválido",
+        "Vault created": "Cofre criado",
+        "Vault deleted": "Cofre excluído",
+        "Master passwords do not match": "As senhas não coincidem",
+        "Password too short (min 4)": "Senha muito curta (mín. 4)",
+        "Entries": "Entradas",
+        "Add entry": "Adicionar entrada",
+        "Edit entry": "Editar entrada",
+        "Title": "Título",
+        "Username": "Usuário",
+        "Password": "Senha",
+        "Save entry": "Salvar entrada",
+        "Entry saved": "Entrada salva",
+        "Delete entry": "Excluir entrada",
+        "Search…": "Pesquisar…",
+        "copied (clears in 30s)": "copiado (limpa em 30 s)",
+        "Clear form": "Limpar formulário",
+    },
+    "hi": {
+        "Deep thinking": "गहन चिंतन",
+        "Thinking hidden": "चिंतन छिपाया गया",
+        "Download large model": "बड़ा मॉडल डाउनलोड करें",
+        "Vault": "वॉल्ट",
+        "Encrypted vault — master password + PBKDF2":
+            "एन्क्रिप्टेड वॉल्ट — मास्टर पासवर्ड + PBKDF2",
+        "Vault file": "वॉल्ट फ़ाइल",
+        "Vault name": "वॉल्ट नाम",
+        "Vault name exists": "वॉल्ट नाम पहले से मौजूद है",
+        "Master password": "मास्टर पासवर्ड",
+        "Unlock": "अनलॉक",
+        "Lock": "लॉक",
+        "New vault": "नया वॉल्ट",
+        "Delete vault": "वॉल्ट हटाएँ",
+        "Change password": "पासवर्ड बदलें",
+        "New password": "नया पासवर्ड",
+        "Confirm password": "पासवर्ड की पुष्टि करें",
+        "Vault locked": "वॉल्ट लॉक हो गया",
+        "Vault auto-locked (idle)": "वॉल्ट स्वतः लॉक हुआ (निष्क्रिय)",
+        "Wrong master password": "गलत मास्टर पासवर्ड",
+        "Vault corrupted": "वॉल्ट फ़ाइल दूषित",
+        "Invalid vault name": "अवैध वॉल्ट नाम",
+        "Vault created": "वॉल्ट बनाया गया",
+        "Vault deleted": "वॉल्ट हटाया गया",
+        "Master passwords do not match": "पासवर्ड मेल नहीं खाते",
+        "Password too short (min 4)": "पासवर्ड बहुत छोटा है (न्यूनतम 4)",
+        "Entries": "प्रविष्टियाँ",
+        "Add entry": "प्रविष्टि जोड़ें",
+        "Edit entry": "प्रविष्टि संपादित करें",
+        "Title": "शीर्षक",
+        "Username": "उपयोगकर्ता नाम",
+        "Password": "पासवर्ड",
+        "Save entry": "प्रविष्टि सहेजें",
+        "Entry saved": "प्रविष्टि सहेजी गई",
+        "Delete entry": "प्रविष्टि हटाएँ",
+        "Search…": "खोजें…",
+        "copied (clears in 30s)": "कॉपी हुआ (30 सेकंड में साफ़)",
+        "Clear form": "फ़ॉर्म खाली करें",
+    },
+    "bn": {
+        "Deep thinking": "গভীর চিন্তা",
+        "Thinking hidden": "চিন্তা লুকানো হয়েছে",
+        "Download large model": "বড় মডেল ডাউনলোড করুন",
+        "Vault": "ভল্ট",
+        "Encrypted vault — master password + PBKDF2":
+            "এনক্রিপ্টেড ভল্ট — মাস্টার পাসওয়ার্ড + PBKDF2",
+        "Vault file": "ভল্ট ফাইল",
+        "Vault name": "ভল্টের নাম",
+        "Vault name exists": "ভল্টের নাম আগেই আছে",
+        "Master password": "মাস্টার পাসওয়ার্ড",
+        "Unlock": "আনলক",
+        "Lock": "লক",
+        "New vault": "নতুন ভল্ট",
+        "Delete vault": "ভল্ট মুছুন",
+        "Change password": "পাসওয়ার্ড পরিবর্তন",
+        "New password": "নতুন পাসওয়ার্ড",
+        "Confirm password": "পাসওয়ার্ড নিশ্চিত করুন",
+        "Vault locked": "ভল্ট লক হয়েছে",
+        "Vault auto-locked (idle)": "ভল্ট স্বয়ংক্রিয়ভাবে লক হয়েছে (নিষ্ক্রিয়)",
+        "Wrong master password": "ভুল মাস্টার পাসওয়ার্ড",
+        "Vault corrupted": "ভল্ট ফাইল ক্ষতিগ্রস্ত",
+        "Invalid vault name": "অবৈধ ভল্টের নাম",
+        "Vault created": "ভল্ট তৈরি হয়েছে",
+        "Vault deleted": "ভল্ট মুছে ফেলা হয়েছে",
+        "Master passwords do not match": "পাসওয়ার্ড মিলছে না",
+        "Password too short (min 4)": "পাসওয়ার্ড খুব ছোট (সর্বনিম্ন ৪)",
+        "Entries": "এন্ট্রি",
+        "Add entry": "এন্ট্রি যোগ করুন",
+        "Edit entry": "এন্ট্রি সম্পাদনা",
+        "Title": "শিরোনাম",
+        "Username": "ব্যবহারকারীর নাম",
+        "Password": "পাসওয়ার্ড",
+        "Save entry": "এন্ট্রি সংরক্ষণ",
+        "Entry saved": "এন্ট্রি সংরক্ষিত",
+        "Delete entry": "এন্ট্রি মুছুন",
+        "Search…": "অনুসন্ধান…",
+        "copied (clears in 30s)": "কপি হয়েছে (৩০ সেকেন্ডে মুছবে)",
+        "Clear form": "ফর্ম খালি করুন",
+    },
+    "ur": {
+        "Deep thinking": "گہری سوچ",
+        "Thinking hidden": "سوچ چھپا دی گئی",
+        "Download large model": "بڑا ماڈل ڈاؤن لوڈ کریں",
+        "Vault": "خزانہ",
+        "Encrypted vault — master password + PBKDF2":
+            "مرموز خزانہ — ماسٹر پاس ورڈ + PBKDF2",
+        "Vault file": "خزانے کی فائل",
+        "Vault name": "خزانے کا نام",
+        "Vault name exists": "خزانے کا نام پہلے سے موجود ہے",
+        "Master password": "ماسٹر پاس ورڈ",
+        "Unlock": "کھولیں",
+        "Lock": "بند کریں",
+        "New vault": "نیا خزانہ",
+        "Delete vault": "خزانہ حذف کریں",
+        "Change password": "پاس ورڈ تبدیل کریں",
+        "New password": "نیا پاس ورڈ",
+        "Confirm password": "پاس ورڈ کی تصدیق",
+        "Vault locked": "خزانہ بند ہو گیا",
+        "Vault auto-locked (idle)": "خزانہ خودکار بند ہو گیا (بے کار)",
+        "Wrong master password": "ماسٹر پاس ورڈ غلط ہے",
+        "Vault corrupted": "خزانے کی فائل خراب ہے",
+        "Invalid vault name": "غلط خزانے کا نام",
+        "Vault created": "خزانہ بنا دیا گیا",
+        "Vault deleted": "خزانہ حذف کر دیا گیا",
+        "Master passwords do not match": "پاس ورڈ مماثل نہیں",
+        "Password too short (min 4)": "پاس ورڈ بہت مختصر ہے (کم از کم 4)",
+        "Entries": "اندراجات",
+        "Add entry": "اندراج شامل کریں",
+        "Edit entry": "اندراج ترمیم کریں",
+        "Title": "عنوان",
+        "Username": "صارف نام",
+        "Password": "پاس ورڈ",
+        "Save entry": "اندراج محفوظ کریں",
+        "Entry saved": "اندراج محفوظ ہو گیا",
+        "Delete entry": "اندراج حذف کریں",
+        "Search…": "تلاش…",
+        "copied (clears in 30s)": "کاپی ہو گیا (30 سیکنڈ میں صاف)",
+        "Clear form": "فارم خالی کریں",
+    },
+}
+for _l, _m in _V45_T.items():
+    TRANSLATIONS.setdefault(_l, {}).update(_m)
+del _l, _m
+
+# ✦ v4.6: مفاتيح وضع الرام المنخفضة + موديل المسودة — بنفس أسلوب _V45_T
+# (Estimated RAM/Browse/Model موجودة مسبقًا وتُعاد استخدامها؛
+#  MoE اختصار تقني يُترك كما هو في كل اللغات)
+_V46_T: Dict[str, Dict[str, str]] = {
+    "ar": {
+        "Low RAM (<8 GB)": "الرام المنخفضة (<8 GB)",
+        "KV cache": "ذاكرة KV",
+        "Auto": "تلقائي",
+        "Draft model": "موديل مسودة",
+        "Draft model (.gguf)": "ملف المسودة (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "تسريع: التحقق من دفعات المسودة دفعةً واحدة — الدقة نفسها",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "الرام المنخفضة: الخبراء تُقرأ من القرص · الدقة الأصلية كاملة",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "الرام المنخفضة: الموديل يُقرأ من القرص · رام أقل وأبطأ",
+        "Suggested: enable Low RAM for this model":
+            "مقترح: فعّل «الرام المنخفضة» لهذا الموديل",
+        "Draft model not found — ignored":
+            "ملف المسودة غير موجود — سيُتجاهل",
+        "Server backend recommended for MoE + Low RAM":
+            "يُنصح بمحرّك الخادم لموديلات MoE مع الرام المنخفضة",
+        "experts": "خبيرًا",
+        "active/token": "نشط/رمز",
+    },
+    "zh": {
+        "Low RAM (<8 GB)": "低内存模式 (<8 GB)",
+        "KV cache": "KV 缓存",
+        "Auto": "自动",
+        "Draft model": "草稿模型",
+        "Draft model (.gguf)": "草稿模型 (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "加速：批量验证草稿 — 精度不变",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "低内存：专家权重从 SSD 流式读取 · 精度不变",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "低内存：模型从 SSD 流式读取 · 省内存但较慢",
+        "Suggested: enable Low RAM for this model":
+            "建议：为该模型开启低内存模式",
+        "Draft model not found — ignored": "未找到草稿模型 — 已忽略",
+        "Server backend recommended for MoE + Low RAM":
+            "MoE + 低内存模式建议使用服务器后端",
+        "experts": "个专家",
+        "active/token": "激活/词元",
+    },
+    "es": {
+        "Low RAM (<8 GB)": "RAM baja (<8 GB)",
+        "KV cache": "caché KV",
+        "Auto": "Auto",
+        "Draft model": "modelo borrador",
+        "Draft model (.gguf)": "modelo borrador (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "Rapidez: verifica lotes del borrador — misma precisión",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "RAM baja: los expertos se leen del SSD · precisión nativa",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "RAM baja: el modelo se lee del SSD · menos RAM, más lento",
+        "Suggested: enable Low RAM for this model":
+            "Sugerencia: activa RAM baja para este modelo",
+        "Draft model not found — ignored":
+            "modelo borrador no encontrado — se ignora",
+        "Server backend recommended for MoE + Low RAM":
+            "se recomienda el backend servidor para MoE + RAM baja",
+        "experts": "expertos",
+        "active/token": "activos/token",
+    },
+    "fr": {
+        "Low RAM (<8 GB)": "RAM faible (<8 Go)",
+        "KV cache": "cache KV",
+        "Auto": "Auto",
+        "Draft model": "modèle brouillon",
+        "Draft model (.gguf)": "modèle brouillon (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "Vitesse : vérifie les lots du brouillon — précision identique",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "RAM faible : les experts sont lus depuis le SSD · précision native",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "RAM faible : le modèle est lu depuis le SSD · peu de RAM, plus lent",
+        "Suggested: enable Low RAM for this model":
+            "Suggestion : activez RAM faible pour ce modèle",
+        "Draft model not found — ignored":
+            "modèle brouillon introuvable — ignoré",
+        "Server backend recommended for MoE + Low RAM":
+            "backend serveur recommandé pour MoE + RAM faible",
+        "experts": "experts",
+        "active/token": "actifs/token",
+    },
+    "ru": {
+        "Low RAM (<8 GB)": "Мало ОЗУ (<8 ГБ)",
+        "KV cache": "кэш KV",
+        "Auto": "Авто",
+        "Draft model": "черновая модель",
+        "Draft model (.gguf)": "черновая модель (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "Скорость: черновик проверяется пачками — точность та же",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "Мало ОЗУ: эксперты читаются с SSD · точность не меняется",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "Мало ОЗУ: модель читается с SSD · экономия ОЗУ, медленнее",
+        "Suggested: enable Low RAM for this model":
+            "Совет: включите «Мало ОЗУ» для этой модели",
+        "Draft model not found — ignored":
+            "черновая модель не найдена — игнорируется",
+        "Server backend recommended for MoE + Low RAM":
+            "для MoE + мало ОЗУ рекомендуется серверный движок",
+        "experts": "экспертов",
+        "active/token": "активных/токен",
+    },
+    "pt": {
+        "Low RAM (<8 GB)": "RAM baixa (<8 GB)",
+        "KV cache": "cache KV",
+        "Auto": "Auto",
+        "Draft model": "modelo rascunho",
+        "Draft model (.gguf)": "modelo rascunho (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "Velocidade: verifica lotes do rascunho — mesma precisão",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "RAM baixa: especialistas lidos do SSD · precisão nativa",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "RAM baixa: modelo lido do SSD · menos RAM, mais lento",
+        "Suggested: enable Low RAM for this model":
+            "Sugestão: ative RAM baixa para este modelo",
+        "Draft model not found — ignored":
+            "modelo rascunho não encontrado — ignorado",
+        "Server backend recommended for MoE + Low RAM":
+            "backend servidor recomendado para MoE + RAM baixa",
+        "experts": "especialistas",
+        "active/token": "ativos/token",
+    },
+    "hi": {
+        "Low RAM (<8 GB)": "कम RAM (<8 GB)",
+        "KV cache": "KV कैश",
+        "Auto": "स्वतः",
+        "Draft model": "ड्राफ़्ट मॉडल",
+        "Draft model (.gguf)": "ड्राफ़्ट मॉडल (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "गति: ड्राफ़्ट बैच एक साथ सत्यापित — वही सटीकता",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "कम RAM: विशेषज्ञ SSD से पढ़े जाते हैं · मूल सटीकता",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "कम RAM: मॉडल SSD से पढ़ा जाता है · कम RAM, धीमा",
+        "Suggested: enable Low RAM for this model":
+            "सुझाव: इस मॉडल के लिए कम RAM चालू करें",
+        "Draft model not found — ignored": "ड्राफ़्ट मॉडल नहीं मिला — अनदेखा",
+        "Server backend recommended for MoE + Low RAM":
+            "MoE + कम RAM हेतु सर्वर बैकएंड बेहतर",
+        "experts": "विशेषज्ञ",
+        "active/token": "सक्रिय/टोकन",
+    },
+    "bn": {
+        "Low RAM (<8 GB)": "কম RAM (<8 GB)",
+        "KV cache": "KV ক্যাশ",
+        "Auto": "স্বয়ংক্রিয়",
+        "Draft model": "ড্রাফ্ট মডেল",
+        "Draft model (.gguf)": "ড্রাফ্ট মডেল (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "গতি: ড্রাফ্ট ব্যাচ একসাথে যাচাই — নির্ভুলতা এক",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "কম RAM: এক্সপার্ট SSD থেকে পড়া হয় · আসল নির্ভুলতা",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "কম RAM: মডেল SSD থেকে পড়া হয় · কম RAM, ধীর",
+        "Suggested: enable Low RAM for this model":
+            "পরামর্শ: এই মডেলের জন্য কম RAM চালু করুন",
+        "Draft model not found — ignored": "ড্রাফ্ট মডেল পাওয়া যায়নি — উপেক্ষিত",
+        "Server backend recommended for MoE + Low RAM":
+            "MoE + কম RAM-এর জন্য সার্ভার ব্যাকএন্ড ভালো",
+        "experts": "এক্সপার্ট",
+        "active/token": "সক্রিয়/টোকেন",
+    },
+    "ur": {
+        "Low RAM (<8 GB)": "کم RAM (<8 GB)",
+        "KV cache": "KV کیش",
+        "Auto": "خودکار",
+        "Draft model": "ڈرافٹ ماڈل",
+        "Draft model (.gguf)": "ڈرافٹ ماڈل (.gguf)",
+        "Speed: verifies draft batches — same accuracy":
+            "رفتار: ڈرافٹ بیچ بیک ساتھ تصدیق — وہی درستگی",
+        "Low-RAM: experts stream from SSD · native accuracy":
+            "کم RAM: ماہرین SSD سے پڑھے جاتے ہیں · اصل درستگی",
+        "Low-RAM: model streams from SSD · low RAM, slower":
+            "کم RAM: ماڈل SSD سے پڑھا جاتا ہے · کم RAM، سست",
+        "Suggested: enable Low RAM for this model":
+            "تجویز: اس ماڈل کے لیے کم RAM آن کریں",
+        "Draft model not found — ignored": "ڈرافٹ ماڈل نہیں ملا — نظر انداز",
+        "Server backend recommended for MoE + Low RAM":
+            "MoE + کم RAM کے لیے سرور بیک اینڈ بہتر",
+        "experts": "ماہرین",
+        "active/token": "فعال/ٹوکن",
+    },
+}
+for _l, _m in _V46_T.items():
+    TRANSLATIONS.setdefault(_l, {}).update(_m)
+del _l, _m
+
+# ✦ v4.7: مفاتيح الموديلات غير المحجوبة — بنفس أسلوب _V45_T/_V46_T
+# (Model/Canceled/Download failed... موجودة مسبقًا وتُعاد استخدامها)
+_V47_T: Dict[str, Dict[str, str]] = {
+    "ar": {
+        "Download uncensored model": "تنزيل موديل غير محجوب",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "موديلات غير محجوبة: نسخ معدّلة من المجتمع (Dolphin · Abliterated "
+            "· Lexi · Stheno) أُزيل منها سلوك الرفض — استخدمها بمسؤولية "
+            "ووفق قوانين بلدك.",
+    },
+    "zh": {
+        "Download uncensored model": "下载无审查模型",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "无审查模型：社区微调版（Dolphin · Abliterated · Lexi · Stheno），"
+            "移除了拒绝行为 — 请负责任地并按当地法律使用。",
+    },
+    "es": {
+        "Download uncensored model": "Descargar modelo sin censura",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "Modelos sin censura: versiones de la comunidad (Dolphin · "
+            "Abliterated · Lexi · Stheno) sin rechazos — úsalos con "
+            "responsabilidad y según tus leyes locales.",
+    },
+    "fr": {
+        "Download uncensored model": "Télécharger un modèle non censuré",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "Modèles non censurés : versions communautaires (Dolphin · "
+            "Abliterated · Lexi · Stheno) sans refus — à utiliser de manière "
+            "responsable et selon vos lois locales.",
+    },
+    "ru": {
+        "Download uncensored model": "Скачать модель без цензуры",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "Модели без цензуры: версии от сообщества (Dolphin · Abliterated "
+            "· Lexi · Stheno) без отказов — используйте ответственно и "
+            "согласно местным законам.",
+    },
+    "pt": {
+        "Download uncensored model": "Baixar modelo sem censura",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "Modelos sem censura: versões da comunidade (Dolphin · "
+            "Abliterated · Lexi · Stheno) sem recusas — use com "
+            "responsabilidade e conforme as leis locais.",
+    },
+    "hi": {
+        "Download uncensored model": "असेंसर्ड मॉडल डाउनलोड करें",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "असेंसर्ड मॉडल: कम्युनिटी संस्करण (Dolphin · Abliterated · Lexi · "
+            "Stheno) जिनसे इनकार व्यवहार हटाया गया — ज़िम्मेदारी से और "
+            "स्थानीय कानूनों के अनुसार उपयोग करें।",
+    },
+    "bn": {
+        "Download uncensored model": "আনসেনসর্ড মডেল ডাউনলোড",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "আনসেনসর্ড মডেল: কমিউনিটি সংস্করণ (Dolphin · Abliterated · Lexi · "
+            "Stheno), অস্বীকৃতি আচরণ সরানো হয়েছে — দায়িত্বের সাথে ও "
+            "স্থানীয় আইন অনুযায়ী ব্যবহার করুন।",
+    },
+    "ur": {
+        "Download uncensored model": "غیر چیک شدہ ماڈل ڈاؤن لوڈ کریں",
+        "Uncensored models are community fine-tunes (Dolphin · Abliterated "
+        "· Lexi · Stheno) with refusal behavior removed — use responsibly "
+        "and per your local laws.":
+            "غیر چیک شدہ ماڈل: کمیونٹی ورژن (Dolphin · Abliterated · Lexi · "
+            "Stheno) جن سے انکار کا رویہ ہٹایا گیا — ذمہ داری اور مقامی "
+            "قوانین کے مطابق استعمال کریں۔",
+    },
+}
+for _l, _m in _V47_T.items():
+    TRANSLATIONS.setdefault(_l, {}).update(_m)
+del _l, _m
 
 _T_CACHE: Dict[Tuple[str, str], str] = {}
 
@@ -608,6 +1918,23 @@ def human_time(sec: float) -> str:
 
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
+
+
+def fmt_mmss(sec: float) -> str:
+    """تنسيق مدة كـ mm:ss أو h:mm:ss عند تجاوز الساعة (إصلاح الالتفاف عند 60 دقيقة)."""
+    sec = max(0, int(round(sec)))
+    h, rem = divmod(sec, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+
+def next_birthday_days(a: _dt.date, years: int) -> int:
+    """أيام حتى المناسبة القادمة — آمنة لسنة 29 فبراير في سنوات غير كبيسة."""
+    try:
+        nb = a.replace(year=a.year + years + 1)
+    except ValueError:                      # 29 فبراير في سنة غير كبيسة
+        nb = a.replace(year=a.year + years + 1, day=28)
+    return (nb - _dt.date.today()).days
 
 
 # ── حاسبة آمنة بدون eval — تعتمد ast
@@ -759,6 +2086,22 @@ def http_json(url: str, headers: Optional[dict] = None) -> Any:
     return json.loads(body)
 
 
+def http_request(method: str, url: str, headers: Optional[dict] = None,
+                 data: Optional[str] = None,
+                 timeout: int = NET_TIMEOUT) -> Tuple[int, str, Dict[str, str]]:
+    """طلب HTTP عام (GET/POST/PUT/DELETE/HEAD) — يعيد (الحالة، النص، الترويسات)."""
+    hdrs = dict(headers or {})
+    hdrs.setdefault("User-Agent", f"{APP_NAME}/{APP_VERSION}")
+    body = data.encode("utf-8") if isinstance(data, str) else data
+    if HAS_REQUESTS:
+        r = requests.request(method, url, headers=hdrs, data=body, timeout=timeout)
+        return r.status_code, r.text, dict(r.headers)
+    send_body = None if method.upper() in ("GET", "HEAD") else body
+    req = urllib.request.Request(url, data=send_body, headers=hdrs, method=method.upper())
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.status, resp.read().decode("utf-8", "replace"), dict(resp.headers)
+
+
 def http_post_json(url: str, payload: dict,
                    headers: Optional[dict] = None) -> Any:
     """POST JSON — للمساعد الذكي وغيره."""
@@ -768,17 +2111,25 @@ def http_post_json(url: str, payload: dict,
     data = json.dumps(payload).encode("utf-8")
     if HAS_REQUESTS:
         r = requests.post(url, data=data, headers=headers, timeout=NET_TIMEOUT)
+        if r.status_code >= 400:
+            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
         return r.json()
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=NET_TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8", "replace"))
 
 
+def _no_window_flags() -> int:
+    """منع وميض نافذة الكونسول عند استدعاء أوامر خارجية على Windows."""
+    return getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+
+
 def run_cmd(args: List[str], timeout: int = SUBPROCESS_TIMEOUT) -> Tuple[int, str]:
     """تنفيذ أمر خارجي — دائمًا بـ timeout."""
     try:
         p = subprocess.run(args, capture_output=True, text=True,
-                           timeout=timeout, encoding="utf-8", errors="replace")
+                           timeout=timeout, encoding="utf-8", errors="replace",
+                           creationflags=_no_window_flags())
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except subprocess.TimeoutExpired:
         return -1, f"[timeout > {timeout}s]"
@@ -878,6 +2229,1052 @@ def convert_temp(v: float, src: str, dst: str) -> float:
 
 
 # ─────────────────────────────────────────────────────────────
+# 【5.5】 LLM المحلي (GGUF) — v4.1
+# ─────────────────────────────────────────────────────────────
+_LAMACPP: Dict[str, Any] = {"tried": False, "mod": None}
+
+
+def _get_llama_cpp():
+    """استيراد llama-cpp-python بشكل كسول (محاولة واحدة فقط) — اختياري تمامًا.
+
+    الاستيراد المبكر يبطئ إقلاع التطبيق (يحمّل مكتبة llama.cpp المشتركة)،
+    لذلك نؤجّله حتى أول استخدام فعلي لأداة Local LLM.
+    """
+    if not _LAMACPP["tried"]:
+        _LAMACPP["tried"] = True
+        try:
+            import llama_cpp  # noqa: استيراد كسول
+            _LAMACPP["mod"] = llama_cpp
+        except Exception:
+            _LAMACPP["mod"] = None
+    return _LAMACPP["mod"]
+
+
+_GGUF_FILE_TYPE = {
+    0: "F32", 1: "F16", 2: "Q4_0", 3: "Q4_1", 4: "Q4_1_SOME_F16",
+    7: "Q8_0", 8: "Q5_0", 9: "Q5_1", 10: "Q2_K", 11: "Q3_K_S",
+    12: "Q3_K_M", 13: "Q3_K_L", 14: "Q4_K_S", 15: "Q4_K_M",
+    16: "Q5_K_S", 17: "Q5_K_M", 18: "Q6_K", 19: "IQ2_XXS", 20: "IQ2_XS",
+    21: "Q2_K_S", 22: "IQ3_XS", 23: "IQ3_XXS", 24: "IQ1_S", 25: "IQ4_NL",
+    26: "IQ3_S", 27: "IQ2_S", 28: "IQ4_XS", 29: "IQ1_M", 30: "BF16",
+    36: "TQ1_0", 37: "TQ2_0",
+}
+
+# أنواع القيم في رأس GGUF: (صيغة struct، حجم بالبايت) — str/arr يُعالجان يدويًا
+_GGUF_VT = {0: ("<B", 1), 1: ("<b", 1), 2: ("<H", 2), 3: ("<h", 2),
+            4: ("<I", 4), 5: ("<i", 4), 6: ("<f", 4), 7: ("<?", 1),
+            8: ("str", 0), 9: ("arr", 0), 10: ("<Q", 8), 11: ("<q", 8),
+            12: ("<d", 8)}
+
+
+def gguf_metadata(path: str) -> Dict[str, Any]:
+    """قراءة رأس ملف GGUF دون تحميل الموديل — عبر struct فقط، بلا اعتمادات.
+
+    يستخرج: الاسم، البنية (arch)، التكميم (quant)، طول السياق، عدد الطبقات،
+    بُعد التضمين، حجم المفردات. يتوقف مبكرًا عند اكتمال المعلومات المفيدة أو
+    عند الوصول إلى مفاتيح tokenizer (مصفوفات ضخمة)، ويتحمّل الملفات التالفة
+    بإرجاع ما استُخرج فقط.
+    """
+    out: Dict[str, Any] = {}
+    try:
+        with open(path, "rb") as f:
+            head = f.read(24)
+            if len(head) < 24 or head[:4] != b"GGUF":
+                return out
+            _version, _tensors, kv_count = struct.unpack("<IQQ", head[4:24])
+
+            def rstr() -> str:
+                n = struct.unpack("<Q", f.read(8))[0]
+                if n > 8 * 1024 * 1024:                 # قيمة شاذة — ملف تالف
+                    raise ValueError("gguf: string too long")
+                return f.read(n).decode("utf-8", "replace")
+
+            def rval(vt: int, budget: List[int]) -> Any:
+                if vt == 8:
+                    return rstr()
+                if vt == 9:                             # مصفوفة
+                    et = struct.unpack("<I", f.read(4))[0]
+                    cnt = struct.unpack("<Q", f.read(8))[0]
+                    spec = _GGUF_VT.get(et)
+                    if spec and spec[0] not in ("str", "arr"):
+                        f.seek(cnt * spec[1], 1)        # تخطّي كامل — عناصر ثابتة الحجم
+                        return f"array[{cnt}]"
+                    items = []
+                    for _ in range(min(cnt, 4)):        # نصوص: نقرأ عينة صغيرة فقط
+                        if budget[0] <= 0:
+                            raise ValueError("gguf: budget exhausted")
+                        budget[0] -= 1
+                        items.append(rval(et, budget))
+                    if cnt > 4:
+                        raise ValueError("gguf: big string array")
+                    return items
+                spec = _GGUF_VT.get(vt)
+                if not spec or spec[0] in ("str", "arr"):
+                    raise ValueError("gguf: bad value type")
+                return struct.unpack(spec[0], f.read(spec[1]))[0]
+
+            budget = [4096]
+            scanned = 0
+            while scanned < 64 and scanned < kv_count:
+                key = rstr()
+                vt = struct.unpack("<I", f.read(4))[0]
+                scanned += 1
+                if key == "general.name":
+                    out["name"] = str(rval(vt, budget))
+                elif key == "general.architecture":
+                    out["arch"] = str(rval(vt, budget))
+                elif key == "general.file_type":
+                    out["quant"] = _GGUF_FILE_TYPE.get(
+                        int(rval(vt, budget)), "?")
+                elif key == "general.size_label":
+                    out["size_label"] = str(rval(vt, budget))
+                elif key == "general.parameter_count":
+                    out["params"] = rval(vt, budget)
+                elif key.endswith(".context_length"):
+                    out["ctx"] = int(rval(vt, budget))
+                elif key.endswith(".block_count"):
+                    out["layers"] = int(rval(vt, budget))
+                elif key.endswith(".embedding_length"):
+                    out["embed"] = int(rval(vt, budget))
+                elif key.endswith(".vocab_size"):
+                    out["vocab"] = int(rval(vt, budget))
+                else:
+                    rval(vt, budget)                    # قراءة لتخطّي القيمة
+                if key.startswith("tokenizer."):
+                    break                               # ما بعدها مفردات ضخمة — لا فائدة
+    except Exception:
+        pass                                            # رأس تالف → نُبقي ما استُخرج
+    return out
+
+
+# ─────────────────────────────────────────────────────────────
+# 【5.5b】 v4.6: فحص موترات GGUF (كشف MoE) + مقدّر الرام المنخفضة
+# ─────────────────────────────────────────────────────────────
+
+# حجم كتلة/عنصر لأنواع تكميم GGML: type → (block_size, bytes_per_block)
+_GGML_TSIZE = {
+    0: (1, 4), 1: (1, 2), 2: (32, 18), 3: (32, 20), 6: (32, 22),
+    7: (32, 24), 8: (32, 34), 9: (32, 36), 10: (256, 84), 11: (256, 110),
+    12: (256, 144), 13: (256, 176), 14: (256, 210), 15: (256, 292),
+    16: (256, 66), 17: (256, 74), 18: (256, 93), 19: (256, 50),
+    20: (32, 20), 21: (256, 109), 22: (256, 97), 23: (256, 72),
+    24: (256, 56), 25: (1, 2), 28: (32, 17),
+}
+
+# ذاكرة الفحص — المسار+mtime+الحجم مفتاح؛ نُبقي 8 نتائج كحد أقصى
+_GGUF_SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
+def _gguf_tensor_scan(path: str) -> Dict[str, Any]:
+    """✦ v4.6: مسح قسم معلومات الموترات في GGUF — كشف موديلات MoE وقياسها.
+
+    يمشي كامل قسم البيانات الوصفية (بلا توقف مبكر عند tokenizer) ثم يقرأ
+    إدخالات الموترات ويحسب الأحجام النظرية من (numel × dtype)، فيجمع:
+    tensor_bytes (مجموع كل الأوزان)، expert_bytes (موترات الخبراء ثلاثية
+    الأبعاد ذات ‎.ffn_‎ — التسمية الموحدة في Mixtral/Qwen3-MoE/DeepSeek/GLM)،
+    experts/experts_used (من مفاتيح المعمارية)، kv_width (رؤوس KV × طول
+    المفتاح — لتقدير ذاكرة السياق بدقة GQA). النتيجة تُخزَّن مؤقتًا حسب
+    المسار+mtime لأن الرأس يُقرأ عدة مرات. أي ملف تالف/نوع مجهول → {}.
+    """
+    try:
+        st = os.stat(path)
+        ck = f"{path}:{st.st_mtime_ns}:{st.st_size}"
+        hit = _GGUF_SCAN_CACHE.get(ck)
+        if hit is not None:
+            return hit
+        out: Dict[str, Any] = {}
+        with open(path, "rb") as f:
+            head = f.read(24)
+            if len(head) < 24 or head[:4] != b"GGUF":
+                return {}
+            ver, n_tensors, kv_count = struct.unpack("<IQQ", head[4:24])
+            if ver < 2 or kv_count > 4096 or n_tensors > 20000:
+                return {}                               # إصدار قديم/شاذ
+
+            def rstr() -> str:
+                n = struct.unpack("<Q", f.read(8))[0]
+                if n > 8 * 1024 * 1024:
+                    raise ValueError("bad string")
+                return f.read(n).decode("utf-8", "replace")
+
+            def skip_val(vt: int) -> Any:
+                if vt == 8:
+                    rstr()
+                    return None
+                if vt == 9:                             # مصفوفة
+                    et = struct.unpack("<I", f.read(4))[0]
+                    cnt = struct.unpack("<Q", f.read(8))[0]
+                    spec = _GGUF_VT.get(et)
+                    if spec and spec[0] not in ("str", "arr"):
+                        f.seek(cnt * spec[1], 1)
+                        return None
+                    if cnt > 2_000_000:
+                        raise ValueError("huge array")
+                    for _ in range(cnt):
+                        skip_val(et)
+                    return None
+                spec = _GGUF_VT.get(vt)
+                if not spec or spec[0] in ("str", "arr"):
+                    raise ValueError("bad type")
+                return struct.unpack(spec[0], f.read(spec[1]))[0]
+
+            arch = ""
+            for _ in range(kv_count):
+                key = rstr()
+                vt = struct.unpack("<I", f.read(4))[0]
+                if key == "general.architecture":
+                    # ⚠ skip_val يعيد None للنصوص — نقرأ القيمة هنا يدويًا
+                    arch = rstr() if vt == 8 else str(skip_val(vt) or "")
+                elif arch and key == f"{arch}.expert_count":
+                    out["experts"] = int(skip_val(vt) or 0)
+                elif arch and key == f"{arch}.expert_used_count":
+                    out["experts_used"] = int(skip_val(vt) or 0)
+                elif key.endswith(".attention.head_count_kv"):
+                    v = skip_val(vt)
+                    if isinstance(v, (int, float)):
+                        out["kv_heads"] = int(v)
+                elif key.endswith(".attention.key_length"):
+                    v = skip_val(vt)
+                    if isinstance(v, (int, float)):
+                        out["key_length"] = int(v)
+                else:
+                    skip_val(vt)
+            if out.get("kv_heads") and out.get("key_length"):
+                out["kv_width"] = out["kv_heads"] * out["key_length"]
+
+            total = 0
+            expert = 0
+            for _ in range(n_tensors):
+                # ترتيب المواصفة: الاسم أولاً ثم n_dims ثم dims ثم type/offset
+                name = rstr()
+                n_dims = struct.unpack("<I", f.read(4))[0]
+                dims = struct.unpack(f"<{n_dims}Q",
+                                     f.read(8 * n_dims)) if n_dims else ()
+                ttype = struct.unpack("<I", f.read(4))[0]
+                struct.unpack("<Q", f.read(8))          # offset — لا نحتاجه
+                spec = _GGML_TSIZE.get(ttype)
+                if spec is None:
+                    raise ValueError("unknown tensor type")
+                numel = 1
+                for d in dims:
+                    numel *= d
+                nb = ((numel + spec[0] - 1) // spec[0]) * spec[1]
+                total += nb
+                if n_dims == 3 and ".ffn_" in name:
+                    expert += nb                        # موتر خبراء
+            out["tensor_bytes"] = total
+            out["expert_bytes"] = expert
+        _GGUF_SCAN_CACHE[ck] = out
+        if len(_GGUF_SCAN_CACHE) > 8:                   # نظافة الذاكرة
+            _GGUF_SCAN_CACHE.pop(next(iter(_GGUF_SCAN_CACHE)))
+        return out
+    except Exception:
+        return {}
+
+
+def _llm_estimate_ram(meta: Dict[str, Any], file_size: int, *,
+                      lowram: bool = False, kv_q: str = "f16"
+                      ) -> Dict[str, Any]:
+    """✦ v4.6: مقدّر ذاكرة وحدوي — يقود سطور «Estimated RAM» في الواجهة.
+
+    المدخلات من gguf_metadata + _gguf_tensor_scan — بلا وصول لملفات.
+    يعيد: moe / experts / experts_used / kv (تقدير ذاكرة السياق حسب kv_q)
+    / resident (الرام المقيمة مع وضع lowram: الأوزان غير الخبيرة + السياق +
+    مخازن) / full (الرام اللازمة للسرعة الكاملة) / tok_bytes (قراءة القرص
+    لكل توكن عند البث) / tok_lo..tok_hi (مدى tok/s على NVMe 2500–6000MB/s).
+    """
+    experts = int(meta.get("experts") or 0)
+    used = int(meta.get("experts_used") or 0)
+    moe = experts > 0
+    layers = int(meta.get("layers") or 0)
+    ctx = int(meta.get("ctx") or 4096)
+    kv_w = int(meta.get("kv_width") or 0)
+    if kv_w <= 0:
+        kv_w = max(1, int(meta.get("embed") or 0) // 4)  # GQA تقريبي
+    elem = {"q8_0": 1.0, "q4_0": 0.5}.get(kv_q, 2.0)
+    kv = int(2 * layers * ctx * kv_w * elem) if layers else 0
+    out: Dict[str, Any] = {"moe": moe, "experts": experts,
+                           "experts_used": used, "kv": kv}
+    total = int(meta.get("tensor_bytes") or file_size)
+    expert = int(meta.get("expert_bytes") or 0)
+    if moe:
+        # الأوزان غير الخبيرة هي ما يقيم فعليًا مع exps=CPU (والبقية mmap)
+        rest = max(0, total - expert) if expert > 0 else int(total * 0.2)
+        # القراءة من القرص لكل توكن = الخبراء النشطون فقط (used/experts)
+        act = expert * (used / experts) if (expert and used) else \
+            expert * 0.1
+        out["resident"] = int(rest * 1.12 + kv + 0.4 * (1 << 30))
+        out["tok_bytes"] = int(act + kv / max(1, ctx))
+    else:
+        out["resident"] = int(file_size * 1.12 + kv)
+        out["tok_bytes"] = int(file_size)
+    out["full"] = int(file_size * 1.12 + kv)
+    mb = max(1.0, out["tok_bytes"] / (1 << 20))
+    out["tok_lo"] = round(2500 / mb, 1)                 # SSD متواضع
+    out["tok_hi"] = round(6000 / mb, 1)                 # NVMe سريع
+    return out
+
+
+# مفاتيح llama-server الاختيارية — قد ترفضها إصدارات أقدم فتُحذف في إعادة المحاولة
+_LLM_OPT_FLAGS = ("-fa", "--cache-type-k", "--cache-type-v",
+                  "--override-tensor", "-md", "--draft-max", "--draft-min",
+                  "--draft-p-min")
+
+
+def _llm_strip_optional(args: List[str]) -> List[str]:
+    """حذف المفاتيح الاختيارية (ووسائطها) من سطر أوامر llama-server."""
+    out: List[str] = []
+    skip = False
+    for a in args:
+        if skip:
+            skip = False
+            continue
+        if a in _LLM_OPT_FLAGS:
+            skip = a != "-fa"                           # -fa بلا وسيط قيمة
+            continue
+        out.append(a)
+    return out
+
+
+def _llm_lowram_flags(lowram: bool, kv_q: str, moe: bool,
+                      draft: str = "") -> List[str]:
+    """✦ v4.6: وسائط llama-server لوضع الرام المنخفضة + موديل المسودة.
+
+    - lowram: بلا تثبيت صفحات (--no-mlock) وبلا تسخين (--no-warmup يمنع
+      قفزة الرام عند الإقلاع) + دفعات حساب صغيرة ‎-b/-ub 128‎ تقلّص مخازن
+      الحساب + تكميم ذاكرة KV (q8_0 أثره على الدقة شبه معدوم، q4_0 أكبر
+      توفير) — يُفعَّل FlashAttention لأن تكميم V يتطلبه.
+    - moe: ‎--override-tensor "exps=CPU"‎ يُبقي موترات الخبراء (~80-90٪ من
+      الموديل) على القرص عبر mmap وتُقرأ التجزئة النشطة لكل توكن فقط —
+      موديل 30B يعمل بأقل من 8GB رام وبالدقة الأصلية الكاملة (بلا تكميم
+      إضافي). مع -ngl تبقى طبقات الانتباه على GPU فترتفع السرعة.
+    - draft: فك تشفير تخميني — الموديل الصغير يقترح حتى 16 رمزًا والكبير
+      يتحقق منها دفعةً واحدة، فتُقرأ الأوزان مرة واحدة لعدة رموز: تسريع
+      حقيقي دون أي تغيير في الدقة (قبول الرموز يضمن نفس التوزيع).
+    """
+    flags: List[str] = []
+    if draft and os.path.isfile(draft):
+        flags += ["-md", draft, "--draft-max", "16", "--draft-min", "3"]
+    if lowram:
+        flags += ["--no-mlock", "--no-warmup", "-b", "128", "-ub", "128"]
+        if kv_q in ("q8_0", "q4_0"):
+            flags += ["-fa", "--cache-type-k", kv_q, "--cache-type-v", kv_q]
+        if moe:
+            flags += ["--override-tensor", "exps=CPU"]
+    return flags
+
+
+# ─────────────────────────────────────────────────────────────
+# 【5.6】 خادم llama.cpp عبر HTTP — v4.3 (بلا llama-cpp-python وبلا مترجم)
+# ─────────────────────────────────────────────────────────────
+_LLM_INSTALL_HELP = """\
+llama-cpp-python — install help
+===============================
+Python 3.13 on Windows has NO prebuilt wheel for llama-cpp-python,
+so pip falls back to compiling it and fails without MSVC
+("nmake: no such file or directory").
+
+OPTION 1 - llama.cpp server  (RECOMMENDED - no compiler, v4.4 auto-download)
+  1) In this tool:  Build = "Auto (recommended)"
+     ->  click "Download llama-server" — the toolbox picks the
+     right prebuilt binary (CPU/CUDA) from GitHub automatically.
+     Manual alternative: https://github.com/ggml-org/llama.cpp/releases
+  2) Click "Download model" to fetch a ready GGUF from Hugging Face,
+     or extract/browse your own .gguf file.
+  3) Backend = "llama.cpp Server (auto-start)"  ->  Load model.
+     The toolbox starts the server and streams over HTTP.
+
+OPTION 2 - compile in-process  (needs ~7 GB disk + 20-60 minutes)
+  winget install Microsoft.VisualStudio.2022.BuildTools --override "--wait --passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+  pip install llama-cpp-python --no-cache-dir
+
+OPTION 3 - older Python (3.12 or earlier has community wheels)
+  pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+
+Server mode (option 1) needs NO llama-cpp-python at all.
+"""
+
+
+def _llm_server_ready(base_url: str, timeout: float = 3.0) -> Tuple[bool, str]:
+    """فحص جهوزية خادم llama.cpp عبر ‎/health — يرجع (جاهز؟، سبب الفشل)."""
+    url = base_url.rstrip("/") + "/health"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return True, ""
+    except Exception as e:
+        code = getattr(e, "code", None)
+        if code == 503:
+            return False, "loading"                     # النموذج ما زال يُحمَّل
+        if code:
+            return False, f"HTTP {code}"
+        return False, (str(e) or e.__class__.__name__)
+
+
+def _llm_chat_body(messages: List[Dict[str, str]], *, max_tokens: int,
+                   temperature: float, top_p: float,
+                   repeat_penalty: Optional[float] = None,
+                   disable_thinking: bool = False) -> Dict[str, Any]:
+    """جسم طلب /v1/chat/completions — مُفصَل ليُختبر وحدويًا.
+
+    ✦ v4.5: disable_thinking=True يُرسل chat_template_kwargs enable_thinking=false
+    (مدعوم في llama.cpp الحديثة لموديلات Qwen3 وغيرها) — فيستغني عن توليد رموز
+    التفكير أصلًا بدل إخفائها بعد توليدها. الخوادم الأقدم تتجاهل الحقل بهدوء.
+    """
+    body: Dict[str, Any] = {"messages": messages, "stream": True,
+                            "max_tokens": int(max_tokens),
+                            "temperature": float(temperature),
+                            "top_p": float(top_p)}
+    if repeat_penalty and repeat_penalty > 1.0:
+        body["repeat_penalty"] = float(repeat_penalty)
+    if disable_thinking:
+        body["chat_template_kwargs"] = {"enable_thinking": False}
+    return body
+
+
+def _llm_http_stream(base_url: str, messages: List[Dict[str, str]], *,
+                     max_tokens: int, temperature: float, top_p: float,
+                     repeat_penalty: Optional[float] = None,
+                     disable_thinking: bool = False,
+                     stop_ev: Optional[threading.Event] = None):
+    """بث محادثة من خادم متوافق مع OpenAI عبر urllib — مولّد مقاطع نصية.
+
+    ينتج قواميس بنفس شكل llama-cpp-python
+    ({"choices": [{"delta": {"content": ...}}]}) لتبقى حلقة الاستهلاك واحدة.
+    ✦ v4.5: قد يُنتج أيضًا delta["reasoning_content"] (خوادم llama.cpp الحديثة
+    تفصل رموز التفكير عن الجواب) — المستهلك يقرر عرضه أو حجبه حسب المفتاح.
+    """
+    url = base_url.rstrip("/") + "/v1/chat/completions"
+    body = _llm_chat_body(messages, max_tokens=max_tokens,
+                          temperature=temperature, top_p=top_p,
+                          repeat_penalty=repeat_penalty,
+                          disable_thinking=disable_thinking)
+    req = urllib.request.Request(
+        url, data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json",
+                 "Accept": "text/event-stream"})
+    with urllib.request.urlopen(req, timeout=600) as resp:
+        for raw in resp:
+            if stop_ev is not None and stop_ev.is_set():
+                break
+            line = raw.decode("utf-8", "replace").strip()
+            if not line.startswith("data:"):
+                continue                                # SSE: تعليقات/أسطر فارغة
+            payload = line[5:].strip()
+            if payload == "[DONE]":
+                break
+            try:
+                obj = json.loads(payload)
+                delta = obj["choices"][0].get("delta") or {}
+                piece = delta.get("content") or ""
+                rc = delta.get("reasoning_content") or ""
+            except Exception:
+                piece, rc = "", ""
+            if piece or rc:
+                yield {"choices": [{"delta": {"content": piece,
+                                              "reasoning_content": rc}}]}
+
+
+class _ThinkFilter:
+    """✦ v4.5: مرشّح بثّي يحجب كتل التفكير ‎<think>…</think>‎ (وبدائلها).
+
+    يُغذّى بمقاطع قد تتقطّع في أي حرف ويرجع النص الظاهر فقط.
+    يعمل مع موديلات DeepSeek-R1/QwQ/Qwen3-thinking وأي موديل يضع التفكير
+    بين وسوم. يتتبّع: suppressed_chars (عدد الأحرف المحجوبة)،
+    suppressing (هل نحن داخل كتلة تفكير الآن؟).
+    """
+
+    OPEN = ("<think>", "<thinking>", "<reasoning>")
+    CLOSE = ("</think>", "</thinking>", "</reasoning>")
+
+    def __init__(self):
+        self._buf = ""
+        self._inside = False
+        self.suppressed_chars = 0
+
+    @property
+    def suppressing(self) -> bool:
+        return self._inside
+
+    @staticmethod
+    def _earliest(buf: str, tags: Tuple[str, ...]) -> Tuple[int, int]:
+        """(أول موقع، طول الوسم) — أو (-1، 0) إن لم يوجد."""
+        best, blen = -1, 0
+        for tg in tags:
+            i = buf.find(tg)
+            if i != -1 and (best == -1 or i < best):
+                best, blen = i, len(tg)
+        return best, blen
+
+    def feed(self, chunk: str) -> str:
+        out: List[str] = []
+        buf = self._buf + chunk
+        maxlen = max(len(t) for t in self.OPEN + self.CLOSE)
+        while buf:
+            if self._inside:
+                i, ln = self._earliest(buf, self.CLOSE)
+                if i == -1:
+                    break          # كله يبقى مؤقتًا — قد يحمل وسم إغلاق مبتور
+                self.suppressed_chars += i + ln
+                buf = buf[i + ln:]
+                self._inside = False
+            else:
+                i, ln = self._earliest(buf, self.OPEN)
+                if i == -1:
+                    keep = max(0, len(buf) - (maxlen - 1))
+                    out.append(buf[:keep])
+                    buf = buf[keep:]
+                    break
+                out.append(buf[:i])
+                buf = buf[i + ln:]
+                self._inside = True
+                self.suppressed_chars += ln       # وسم الفتح نفسه محجوب
+        self._buf = buf
+        text = "".join(out)
+        return text
+
+    def flush(self) -> str:
+        """ما تبقّى في النهاية: نص ظاهر إن كنا خارج كتلة، ولا شيء داخلها."""
+        buf, self._buf = self._buf, ""
+        if self._inside:
+            self.suppressed_chars += len(buf)
+            return ""
+        return buf
+
+
+def _llm_start_server(exe: str, model: str, ctx: int, gpu: int, thr: int,
+                      port: int,
+                      stop_ev: Optional[threading.Event] = None,
+                      extra: Optional[List[str]] = None
+                      ) -> Tuple[Any, str]:
+    """تشغيل llama-server كعملية خلفية وانتظار جهوزيته — يرجع (proc, url).
+
+    يعمل مع أي ثنائي llama-server (Windows/Linux/macOS) بلا مترجم وبلا
+    llama-cpp-python. يُنهي العملية بنفسه عند المهلة أو الإيقاف.
+    ✦ v4.6: ‎extra‎ = وسائط إضافية (وضع الرام المنخفضة/المسودة من
+    _llm_lowram_flags). إن خرج الخادم مبكرًا مع المفاتيح الاختيارية
+    (cache-type/override-tensor/draft…) تُعاد المحاولة مرة واحدة بدونها —
+    لإصدارات llama.cpp الأقدم التي لا تعرفها.
+    """
+    base = [exe, "-m", model, "-c", str(max(256, ctx)),
+            "--host", "127.0.0.1", "--port", str(port)]
+    if gpu:
+        base += ["-ngl", str(gpu)]
+    if thr and thr > 0:
+        base += ["-t", str(thr)]
+    attempts = [base + list(extra or [])]
+    if extra:
+        reduced = base + _llm_strip_optional(list(extra))
+        if reduced != attempts[0]:
+            attempts.append(reduced)                    # محاولة مخفَّضة احتياطية
+    last_err = "llama-server exited early"
+    for ai, args in enumerate(attempts):
+        is_last = ai == len(attempts) - 1
+        try:
+            proc = subprocess.Popen(args, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.STDOUT,
+                                    creationflags=_no_window_flags())
+        except FileNotFoundError as e:
+            raise RuntimeError(f"llama-server not found: {exe} ({e})") from e
+        url = f"http://127.0.0.1:{port}"
+        deadline = time.time() + 120                    # الموديلات الكبيرة تحتاج وقتًا
+        early_exit = False
+        try:
+            while time.time() < deadline:
+                if stop_ev is not None and stop_ev.is_set():
+                    raise RuntimeError("stopped")
+                if proc.poll() is not None:
+                    early_exit = True                   # مفاتيح غير مدعومة؟
+                    break
+                ok, _ = _llm_server_ready(url, timeout=1.0)
+                if ok:
+                    return proc, url
+                time.sleep(0.5)
+        except Exception:
+            if proc.poll() is None:
+                try:
+                    proc.terminate()
+                except Exception:
+                    pass
+            raise
+        if not early_exit:
+            raise RuntimeError("health timeout after 120s")
+        last_err = f"llama-server exited early (code {proc.returncode})"
+        if is_last:
+            raise RuntimeError(last_err)
+        # نسخة أقدم من llama.cpp — نجرّب بلا المفاتيح الاختيارية
+
+
+# ─────────────────────────────────────────────────────────────
+# 【5.7】 التنزيل التلقائي — v4.4: llama-server من GitHub + موديلات GGUF من Hugging Face
+# ─────────────────────────────────────────────────────────────
+_LLM_UA = "UltimateToolbox/" + APP_VERSION
+_LLM_GH_API = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
+
+# موديلات GGUF موصى بها — روابط مباشرة مجانية بلا تسجيل (Apache/Llama مفتوحة)
+# ✦ v4.5: 25 موديلًا بقسمان — v4.6: عائلة MoE — v4.7: قسم unc غير المحجوب
+#   (Dolphin/Abliterated/Lexi/Stheno) — كل الروابط فُحصت حيًّا (HTTP 200)
+#   والأحجام من Content-Length الفعلي
+_LLM_MODELS: List[Dict[str, str]] = [
+    # ── صغيرة (tier=small): تصلح لأي جهاز ──
+    {"tier": "small", "name": "SmolLM2 360M Instruct · Q8_0", "size": "≈0.4 GB",
+     "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct-GGUF/resolve/main/"
+            "smollm2-360m-instruct-q8_0.gguf"},
+    {"tier": "small", "name": "Qwen2.5 0.5B Instruct · Q4_K_M", "size": "≈0.4 GB",
+     "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/"
+            "qwen2.5-0.5b-instruct-q4_k_m.gguf"},
+    {"tier": "small", "name": "TinyLlama 1.1B Chat · Q4_K_M", "size": "≈0.7 GB",
+     "url": "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/"
+            "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"},
+    {"tier": "small", "name": "Llama 3.2 1B Instruct · Q4_K_M", "size": "≈0.8 GB",
+     "url": "https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/"
+            "Llama-3.2-1B-Instruct-Q4_K_M.gguf"},
+    {"tier": "small", "name": "Qwen2.5 1.5B Instruct · Q4_K_M", "size": "≈1.0 GB",
+     "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/"
+            "qwen2.5-1.5b-instruct-q4_k_m.gguf"},
+    {"tier": "small", "name": "Qwen2.5 3B Instruct · Q4_K_M", "size": "≈1.9 GB",
+     "url": "https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF/resolve/main/"
+            "Qwen2.5-3B-Instruct-Q4_K_M.gguf"},
+    {"tier": "small", "name": "Llama 3.2 3B Instruct · Q4_K_M", "size": "≈2.0 GB",
+     "url": "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/"
+            "Llama-3.2-3B-Instruct-Q4_K_M.gguf"},
+    {"tier": "small", "name": "Phi-3-mini 4k Instruct · Q4_K_M", "size": "≈2.4 GB",
+     "url": "https://huggingface.co/bartowski/Phi-3-mini-4k-instruct-GGUF/resolve/main/"
+            "Phi-3-mini-4k-instruct-Q4_K_M.gguf"},
+    # ── كبيرة (tier=large): 7B حتى 70B — تحتاج RAM/VRAM أكبر ──
+    {"tier": "large", "name": "Mistral 7B Instruct v0.3 · Q4_K_M", "size": "≈4.4 GB",
+     "url": "https://huggingface.co/bartowski/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/"
+            "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen2.5 7B Instruct · Q4_K_M", "size": "≈4.7 GB",
+     "url": "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/"
+            "Qwen2.5-7B-Instruct-Q4_K_M.gguf"},
+    {"tier": "large", "name": "DeepSeek-R1-Distill-Qwen-7B · Q4_K_M", "size": "≈4.7 GB",
+     "url": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF/resolve/main/"
+            "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Meta-Llama 3.1 8B Instruct · Q4_K_M", "size": "≈4.9 GB",
+     "url": "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/"
+            "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen3 8B · Q4_K_M", "size": "≈5.0 GB",
+     "url": "https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/main/"
+            "Qwen3-8B-Q4_K_M.gguf"},
+    {"tier": "large", "name": "gemma-2 9B it · Q4_K_M", "size": "≈5.8 GB",
+     "url": "https://huggingface.co/bartowski/gemma-2-9b-it-GGUF/resolve/main/"
+            "gemma-2-9b-it-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen2.5 14B Instruct · Q4_K_M", "size": "≈9.0 GB",
+     "url": "https://huggingface.co/bartowski/Qwen2.5-14B-Instruct-GGUF/resolve/main/"
+            "Qwen2.5-14B-Instruct-Q4_K_M.gguf"},
+    {"tier": "large", "name": "DeepSeek-R1-Distill-Qwen-14B · Q4_K_M", "size": "≈9.0 GB",
+     "url": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/main/"
+            "DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf"},
+    {"tier": "large", "name": "phi-4 14B · Q4_K_M", "size": "≈9.1 GB",
+     "url": "https://huggingface.co/bartowski/phi-4-GGUF/resolve/main/"
+            "phi-4-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Mistral-Small 24B Instruct 2501 · Q4_K_M", "size": "≈14.3 GB",
+     "url": "https://huggingface.co/bartowski/Mistral-Small-24B-Instruct-2501-GGUF/resolve/main/"
+            "Mistral-Small-24B-Instruct-2501-Q4_K_M.gguf"},
+    {"tier": "large", "name": "gemma-2 27B it · Q4_K_M", "size": "≈16.6 GB",
+     "url": "https://huggingface.co/bartowski/gemma-2-27b-it-GGUF/resolve/main/"
+            "gemma-2-27b-it-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen3 30B-A3B (MoE) · Q4_K_M", "size": "≈18.6 GB",
+     "url": "https://huggingface.co/Qwen/Qwen3-30B-A3B-GGUF/resolve/main/"
+            "Qwen3-30B-A3B-Q4_K_M.gguf"},
+    # ✦ v4.6: عائلة 30B-A3B MoE — تعمل بأقل من 8GB رام مع وضع Low RAM
+    #   (الخبراء تُقرأ من القرص) — مرايا unsloth (الرسمية gated) فُحصت 200
+    {"tier": "large", "name": "Qwen3 30B-A3B Instruct 2507 (MoE) · Q4_K_M",
+     "size": "≈18.6 GB",
+     "url": "https://huggingface.co/unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF/"
+            "resolve/main/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen3 30B-A3B Thinking 2507 (MoE) · Q4_K_M",
+     "size": "≈18.6 GB",
+     "url": "https://huggingface.co/unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF/"
+            "resolve/main/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen3 Coder 30B-A3B (MoE) · Q4_K_M",
+     "size": "≈18.6 GB",
+     "url": "https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/"
+            "resolve/main/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Qwen3 32B · Q4_K_M", "size": "≈19.8 GB",
+     "url": "https://huggingface.co/Qwen/Qwen3-32B-GGUF/resolve/main/"
+            "Qwen3-32B-Q4_K_M.gguf"},
+    {"tier": "large", "name": "QwQ 32B · Q4_K_M", "size": "≈19.9 GB",
+     "url": "https://huggingface.co/Qwen/QwQ-32B-GGUF/resolve/main/"
+            "qwq-32b-q4_k_m.gguf"},
+    {"tier": "large", "name": "Qwen2.5 32B Instruct · Q4_K_M", "size": "≈19.9 GB",
+     "url": "https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/resolve/main/"
+            "Qwen2.5-32B-Instruct-Q4_K_M.gguf"},
+    {"tier": "large", "name": "Llama 3.3 70B Instruct · Q4_K_M", "size": "≈42.5 GB",
+     "url": "https://huggingface.co/bartowski/Llama-3.3-70B-Instruct-GGUF/resolve/main/"
+            "Llama-3.3-70B-Instruct-Q4_K_M.gguf"},
+    {"tier": "large", "name": "DeepSeek-R1-Distill-Llama-70B · Q4_K_M", "size": "≈42.5 GB",
+     "url": "https://huggingface.co/unsloth/DeepSeek-R1-Distill-Llama-70B-GGUF/resolve/main/"
+            "DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf"},
+    # ── غير محجوبة (tier=unc) — v4.7: نسخ معدّلة من المجتمع أُزيل منها سلوك
+    #    الرفض (Dolphin/Abliterated/Lexi/Stheno) — روابط فُحصت 200 بأحجام حقيقية
+    {"tier": "unc", "name": "Dolphin 2.6 Mistral 7B DPO · Q4_K_M", "size": "≈4.4 GB",
+     "url": "https://huggingface.co/TheBloke/dolphin-2.6-mistral-7B-dpo-GGUF/resolve/main/"
+            "dolphin-2.6-mistral-7b-dpo.Q4_K_M.gguf"},
+    {"tier": "unc", "name": "Dolphin 2.9 Llama-3 8B · Q4_K_M", "size": "≈4.9 GB",
+     "url": "https://huggingface.co/bartowski/dolphin-2.9-llama3-8b-GGUF/resolve/main/"
+            "dolphin-2.9-llama3-8b-Q4_K_M.gguf"},
+    {"tier": "unc", "name": "Llama-3.1 8B Lexi Uncensored · Q4_K_M", "size": "≈4.9 GB",
+     "url": "https://huggingface.co/bartowski/Llama-3.1-8B-Lexi-Uncensored-GGUF/resolve/main/"
+            "Llama-3.1-8B-Lexi-Uncensored-Q4_K_M.gguf"},
+    {"tier": "unc", "name": "Llama-3.1 8B Instruct Abliterated · Q4_K_M", "size": "≈4.9 GB",
+     "url": "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-abliterated-GGUF/resolve/main/"
+            "Meta-Llama-3.1-8B-Instruct-abliterated-Q4_K_M.gguf"},
+    {"tier": "unc", "name": "L3-8B-Stheno v3.2 · Q4_K_M", "size": "≈4.9 GB",
+     "url": "https://huggingface.co/bartowski/L3-8B-Stheno-v3.2-GGUF/resolve/main/"
+            "L3-8B-Stheno-v3.2-Q4_K_M.gguf"},
+    {"tier": "unc", "name": "Dolphin 2.7 Mixtral 8x7B · Q4_K_M", "size": "≈26.4 GB",
+     "url": "https://huggingface.co/TheBloke/dolphin-2.7-mixtral-8x7b-GGUF/resolve/main/"
+            "dolphin-2.7-mixtral-8x7b.Q4_K_M.gguf"},
+]
+
+
+def _llm_dl_dir(kind: str) -> str:
+    """مجلد التنزيلات (bin/models) — يجرّب الكتابة بجانب toolbox.py ثم المنزل."""
+    if getattr(_llm_dl_dir, "_root", None) is None:
+        root = None
+        for base in (os.path.join(APP_DIR, "toolbox_data"),
+                     os.path.join(os.path.expanduser("~"), ".ultimate_toolbox")):
+            try:
+                os.makedirs(base, exist_ok=True)
+                probe = os.path.join(base, ".probe")
+                with open(probe, "w") as f:
+                    f.write("x")
+                os.remove(probe)
+                root = base
+                break
+            except Exception:
+                continue
+        _llm_dl_dir._root = root or os.getcwd()
+    d = os.path.join(_llm_dl_dir._root, kind)
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _llm_fetch_json(url: str, timeout: float = 25.0) -> dict:
+    """GET JSON مع User-Agent واضح (GitHub API يرفض الطلبات بلا UA)."""
+    req = urllib.request.Request(url, headers={
+        "User-Agent": _LLM_UA, "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8", "replace"))
+
+
+def _llm_platform() -> str:
+    return {"win32": "win", "darwin": "macos"}.get(sys.platform, "linux")
+
+
+def _llm_arch() -> str:
+    return "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
+
+
+def _llm_has_cuda() -> bool:
+    """كشف تعريف NVIDIA عبر تحميل مكتبة CUDA مباشرة — بلا مكتبات خارجية."""
+    try:
+        if os.name == "nt":
+            ctypes.CDLL("nvcuda.dll")
+            return True
+        ctypes.CDLL("libcuda.so.1")
+        return True
+    except Exception:
+        return False
+
+
+def _llm_choose_asset(assets: List[Dict[str, Any]], build: str = "auto") -> Dict[str, Any]:
+    """اختيار أصل llama.cpp المناسب للمنصّة والنسخة المطلوبة."""
+    plat, arch = _llm_platform(), _llm_arch()
+
+    def pick(*subs: str) -> Optional[Dict[str, Any]]:
+        for a in assets:
+            n = str(a.get("name", "")).lower()
+            if all(s in n for s in subs) and n.endswith((".zip", ".tar.gz")):
+                return a
+        return None
+
+    if plat == "win":
+        if build == "auto":
+            a = pick("bin-win-cuda", "-x64") if _llm_has_cuda() else None
+            return (a or pick("bin-win-cpu", "-x64")
+                    or pick("bin-win-vulkan", "-x64"))
+        return pick({"cpu": "bin-win-cpu", "cuda": "bin-win-cuda",
+                     "vulkan": "bin-win-vulkan"}.get(build, "bin-win-cpu"),
+                    "-x64")
+    if plat == "linux":
+        return pick("bin-ubuntu-x64")
+    return pick("bin-macos-arm64") if arch == "arm64" else pick("bin-macos-x64")
+
+
+def _llm_download(url: str, dest: str,
+                  progress: Optional[Callable[[float, float, float], None]] = None,
+                  stop_ev: Optional[threading.Event] = None,
+                  timeout: float = 90.0) -> Optional[str]:
+    """تنزيل ملف إلى dest عبر .part ثم إعادة تسمية — يرجع None عند الإلغاء.
+
+    progress(done_bytes, total_bytes, speed_bps) يُستدعى بحد أقصى ~3 مرات/ثانية.
+    urllib يتبع التحويلات تلقائيًا (روابط Hugging Face resolve تُحوَّل إلى CDN).
+    """
+    part = dest + ".part"
+    req = urllib.request.Request(url, headers={"User-Agent": _LLM_UA})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r, \
+                open(part, "wb") as f:
+            total = int(r.headers.get("Content-Length") or 0)
+            done, t0, last = 0, time.time(), 0.0
+            while True:
+                if stop_ev is not None and stop_ev.is_set():
+                    f.close()
+                    try:
+                        os.remove(part)
+                    except Exception:
+                        pass
+                    return None
+                b = r.read(1 << 18)
+                if not b:
+                    break
+                f.write(b)
+                done += len(b)
+                now = time.time()
+                if progress is not None and (now - last) >= 0.3:
+                    last = now
+                    progress(float(done), float(total),
+                             done / max(1e-9, now - t0))
+            if progress is not None:
+                progress(float(done), float(total or done),
+                         done / max(1e-9, time.time() - t0))
+        os.replace(part, dest)
+        return dest
+    except Exception:
+        try:
+            if os.path.isfile(part):
+                os.remove(part)
+        except Exception:
+            pass
+        raise
+
+
+_LLM_KEEP = re.compile(
+    r"(^|[/\\])(llama-server(\.exe)?|[\w.\-]+\.(dll|so([.\d]*)?|dylib))$", re.I)
+
+
+def _llm_extract_server(archive: str, target_dir: str) -> str:
+    """استخراج llama-server + المكتبات من zip/tar.gz (تسطيح + منع zip-slip).
+
+    يرجع المسار الكامل للملف التنفيذي llama-server.
+    """
+    os.makedirs(target_dir, exist_ok=True)
+    found = {"win": False, "posix": False}
+    if archive.lower().endswith(".zip"):
+        with zipfile.ZipFile(archive) as z:
+            for info in z.infolist():
+                if info.is_dir():
+                    continue
+                base = os.path.basename(info.filename.replace("\\", "/"))
+                if not base or not _LLM_KEEP.search(base):
+                    continue
+                with z.open(info) as src, \
+                        open(os.path.join(target_dir, base), "wb") as dst:
+                    shutil.copyfileobj(src, dst)
+                if base.lower().endswith(".exe"):
+                    found["win"] = True
+                else:
+                    found["posix"] = True
+    else:                                                   # .tar.gz
+        with tarfile.open(archive, "r:*") as t:
+            for m in t.getmembers():
+                if not m.isfile():
+                    continue
+                base = os.path.basename(m.name.replace("\\", "/"))
+                if not base or not _LLM_KEEP.search(base):
+                    continue
+                with t.extractfile(m) as src, \
+                        open(os.path.join(target_dir, base), "wb") as dst:
+                    shutil.copyfileobj(src, dst)
+                found["win" if base.lower().endswith(".exe") else "posix"] = True
+    if not (found["win"] or found["posix"]):
+        raise RuntimeError("llama-server binary not found in archive")
+    # نفضّل ثنائي منصّتنا الحالية، ونقبل الآخر إن كان هو الموجود في الأرشيف
+    pref = "llama-server.exe" if os.name == "nt" else "llama-server"
+    alt = "llama-server" if os.name == "nt" else "llama-server.exe"
+    exe = os.path.join(target_dir,
+                       pref if os.path.isfile(os.path.join(target_dir, pref))
+                       else alt)
+    if os.name != "nt":                                     # بت التشغيل على Linux/macOS
+        for n in os.listdir(target_dir):
+            if _LLM_KEEP.search(n):
+                try:
+                    os.chmod(os.path.join(target_dir, n), 0o755)
+                except Exception:
+                    pass
+    if not os.path.isfile(exe):
+        raise RuntimeError(f"llama-server missing after extract: {exe}")
+    return exe
+
+
+def _llm_fetch_release(build: str = "auto",
+                       progress: Optional[Callable[[float, float, float], None]] = None,
+                       stop_ev: Optional[threading.Event] = None,
+                       phase: Optional[Callable[[str], None]] = None
+                       ) -> Optional[Tuple[str, str]]:
+    """تنزيل أحدث llama.cpp جاهز من GitHub واستخراج llama-server — (مساره، رقم الإصدار).
+
+    يرجع None عند الإلغاء عبر stop_ev. phase("info"/"download"/"extract") للتغذية الراجعة.
+    """
+    if phase:
+        phase("info")
+    info = _llm_fetch_json(_LLM_GH_API)
+    assets = info.get("assets") or []
+    if not assets:
+        raise RuntimeError("no assets in latest llama.cpp release")
+    asset = _llm_choose_asset(assets, build)
+    if not asset:
+        raise RuntimeError(
+            f"no matching llama.cpp asset for {_llm_platform()}/{_llm_arch()}"
+            f" build={build}")
+    name = os.path.basename(str(asset.get("name") or "llama.zip"))
+    url = asset.get("browser_download_url") or ""
+    if not url:
+        raise RuntimeError(f"asset has no download url: {name}")
+    ddir = _llm_dl_dir("llama")
+    dest = os.path.join(ddir, name)
+    if phase:
+        phase("download")
+    r = _llm_download(url, dest, progress, stop_ev)
+    if r is None:
+        return None
+    if phase:
+        phase("extract")
+    exe = _llm_extract_server(dest, ddir)
+    try:
+        os.remove(dest)                                     # الأرشيف لم يعد لازمًا
+    except Exception:
+        pass
+    return exe, str(info.get("tag_name") or "?")
+
+
+# ─────────────────────────────────────────────────────────────
+# 【5.8】 خزائن مشفّرة (Vault) — v4.5: PBKDF2 + AES/Fernet أو HMAC-CTR مدمج
+# ─────────────────────────────────────────────────────────────
+_VLT_EXT = ".uvault"
+_VLT_MAGIC_F = b"UVLT1F"          # صيغة Fernet (AES-128-CBC + HMAC) — إن توفّرت cryptography
+_VLT_MAGIC_H = b"UVLT1H"          # الصيغة المدمجة: keystream HMAC-SHA256-CTR + MAC
+_VLT_ITERS = 200_000              # تكرارات PBKDF2-HMAC-SHA256
+_VLT_ITERS_H = 300_000            # الصيغة المدمجة: تكرارات أعلى لتعويض خفة HMAC عن KDFs المخصّصة
+_VAULT_LOCK_SECS = 300            # قفل تلقائي بعد 5 دقائق خمول
+
+# cryptography اختيارية تمامًا — غيابها يُسقط تلقائيًا إلى الصيغة المدمجة
+try:
+    from cryptography.fernet import Fernet as _Fernet
+    _HAS_FERNET = True
+except Exception:
+    _Fernet = None                 # type: ignore
+    _HAS_FERNET = False
+
+
+def _vault_dir() -> str:
+    """مجلد الخزائن — يعيد استخدام منطق الجذر القابل للكتابة في _llm_dl_dir."""
+    return _llm_dl_dir("vaults")
+
+
+def _vault_keystream(key: bytes, iv: bytes, n: int) -> bytes:
+    """تدفّق مفاتيح HMAC-SHA256 بوضع العدّاد (CTR) — بديل مدمج بلا اعتمادات.
+
+    keystream_i = HMAC-SHA256(key, iv || counter_i) — آمن عمليًا ما دام HMAC-SHA256
+    دالةً شبه عشوائية، ويُدمج مع MAC (encrypt-then-MAC) أدناه.
+    """
+    out = bytearray()
+    counter = 0
+    while len(out) < n:
+        out += hmac.new(key, iv + counter.to_bytes(8, "big"),
+                        hashlib.sha256).digest()
+        counter += 1
+    return bytes(out[:n])
+
+
+def _vault_xor(data: bytes, ks: bytes) -> bytes:
+    return bytes(a ^ b for a, b in zip(data, ks))
+
+
+def vault_encrypt(data: bytes, password: str,
+                  iters: Optional[int] = None) -> bytes:
+    """تشفير bytes بكلمة السر — يرجع blob: magic + iters + salt (+iv) + tag + body.
+
+    يستخدم Fernet (AES) إن توفّرت cryptography وإلا الشيفرة المدمجة.
+    كل نص مشفّر مستقل (salt وiv عشوائيان في كل مرة).
+    """
+    if not password:
+        raise ValueError("empty password")
+    if _HAS_FERNET:
+        iters = int(iters or _VLT_ITERS)
+        salt = os.urandom(16)
+        key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                                  salt, iters, dklen=32)
+        token = _Fernet(base64.urlsafe_b64encode(key)).encrypt(data)
+        return (_VLT_MAGIC_F + iters.to_bytes(4, "big") + salt
+                + len(token).to_bytes(4, "big") + token)
+    iters = int(iters or _VLT_ITERS_H)
+    salt, iv = os.urandom(16), os.urandom(16)
+    km = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                             salt, iters, dklen=64)
+    k_enc, k_mac = km[:32], km[32:]
+    ks = _vault_keystream(k_enc, iv, len(data))
+    body = _vault_xor(data, ks)
+    tag = hmac.new(k_mac, salt + iv + body, hashlib.sha256).digest()
+    return _VLT_MAGIC_H + iters.to_bytes(4, "big") + salt + iv + tag + body
+
+
+def vault_decrypt(blob: bytes, password: str) -> bytes:
+    """فك تشفير blob — يرفع ValueError عند كلمة سر خاطئة أو تلف البيانات."""
+    if not password:
+        raise ValueError("empty password")
+    try:
+        if blob.startswith(_VLT_MAGIC_F):
+            off = len(_VLT_MAGIC_F)
+            iters = int.from_bytes(blob[off:off + 4], "big")
+            salt = blob[off + 4:off + 20]
+            tlen = int.from_bytes(blob[off + 20:off + 24], "big")
+            token = blob[off + 24:off + 24 + tlen]
+            if tlen <= 0 or len(token) != tlen:
+                raise ValueError("corrupted vault file")
+            key = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                                      salt, iters, dklen=32)
+            try:
+                return _Fernet(base64.urlsafe_b64encode(key)).decrypt(token)
+            except Exception as e:
+                raise ValueError("wrong master password") from e
+        if blob.startswith(_VLT_MAGIC_H):
+            off = len(_VLT_MAGIC_H)
+            iters = int.from_bytes(blob[off:off + 4], "big")
+            salt = blob[off + 4:off + 20]
+            iv = blob[off + 20:off + 36]
+            tag = blob[off + 36:off + 68]
+            body = blob[off + 68:]
+            km = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"),
+                                     salt, iters, dklen=64)
+            k_enc, k_mac = km[:32], km[32:]
+            good = hmac.new(k_mac, salt + iv + body, hashlib.sha256).digest()
+            if not hmac.compare_digest(good, tag):
+                raise ValueError("wrong master password")
+            return _vault_xor(body, _vault_keystream(k_enc, iv, len(body)))
+        raise ValueError("not a vault file")
+    except ValueError:
+        raise
+    except Exception as e:
+        raise ValueError("corrupted vault file") from e
+
+
+def _vault_genpw(length: int = 16) -> str:
+    """توليد كلمة سر قوية بضمان حرف من كل فئة — عبر secrets (آمن تشفيريًا)."""
+    pools = [string.ascii_lowercase, string.ascii_uppercase,
+             string.digits, "!@#$%^&*()-_=+"]
+    length = max(8, min(64, length))
+    rnd = secrets.SystemRandom()
+    chars = [rnd.choice(p) for p in pools]
+    allp = "".join(pools)
+    chars += [rnd.choice(allp) for _ in range(length - len(chars))]
+    rnd.shuffle(chars)
+    return "".join(chars)
+
+
+# ─────────────────────────────────────────────────────────────
 # 【6】 سجل الأدوات — 11 قسمًا
 # ─────────────────────────────────────────────────────────────
 @dataclass
@@ -919,6 +3316,8 @@ TOOLS: List[Tool] = [
     Tool("regex", "Regex Tester", "Text", "🪄", "pattern match groups"),
     Tool("urlan", "URL Analyzer", "Text", "🔗", "query params parse"),
     # Security
+    Tool("vault", "Vault", "Security", "🛡️",
+         "password manager encrypted secrets safe store keeper"),
     Tool("password", "Password Generator", "Security", "🔑", "entropy strong random"),
     Tool("hash", "Text Hash", "Security", "#️⃣", "md5 sha"),
     Tool("uuidgen", "UUID Generator", "Security", "🆔", "guid v4 v1"),
@@ -941,6 +3340,7 @@ TOOLS: List[Tool] = [
     Tool("polybuild", "PolyBuild", "Developer", "🏗️", "build compile package exe apk"),
     Tool("ports", "Port Scanner", "Developer", "📡", "scan tcp open"),
     Tool("httpclient", "HTTP Client", "Developer", "🛰️", "request get post api"),
+    Tool("llm", "Local LLM", "Developer", "🦙", "gguf llama local ai chat offline model chatbot"),
     # APIs
     Tool("weather", "Weather", "APIs", "⛅", "forecast temperature"),
     Tool("currency", "Currency", "APIs", "💱", "exchange rate fx"),
@@ -968,7 +3368,10 @@ DEFAULT_SETTINGS = {
     "favorites": [],
     "recent": [],
     "collapsed": [],
+    "hint_scroll_shown": False,   # ✦ v4.0: هل عُرض تلميح "اسحب للأسفل" من قبل؟
     "polybuild_path": "",
+    "llm_recent": [],             # ✦ v4.1: أحدث نماذج GGUF المستخدمة
+    "llm_params": {},             # ✦ v4.1: آخر إعدادات ضبط الـ LLM المحلي
     "api_keys": {"openweather": "", "newsapi": "", "ipinfo": "",
                  "github": "", "openai": "", "openai_base": "https://api.openai.com/v1"},
     "presets": {},
@@ -999,6 +3402,28 @@ class ToolboxApp(ctk.CTk):
         self.ram_hist: List[float] = [0.0] * 60
         self._palette_win: Optional[ctk.CTkToplevel] = None
         self._pb_proc: Optional[subprocess.Popen] = None
+        self._ui_q: queue.Queue = queue.Queue()
+        self._fav_btn: Optional[ctk.CTkButton] = None
+        # ✦ v4.0: حالة القائمة الجانبية القابلة للتمرير
+        self._search_after = None          # مؤقّت debounce للبحث
+        self._nav_hint = None              # تلميح "اسحب للأسفل ↓" (أول تشغيل)
+        self.nav_canvas = None             # الكانفاس الداخلي للقائمة
+        self.nav_scrollbar = None          # شريط التمرير الداخلي
+        self._ctk_wheel_native = True      # هل يدير CTk 6.x العجلة أصلًا؟
+        self._nav_font_header = None       # خطوط مخزّنة لأداء أسرع
+        self._nav_font_item = None
+        # ✦ v4.1: حالة الـ LLM المحلي — الموديل يبقى محمّلًا عند التنقل بين الأدوات
+        # ✦ v4.3: backend=local/server، url وproc لخادم llama.cpp المُشغَّل تلقائيًا
+        self._llm: Dict[str, Any] = {"model": None, "path": "", "stop": None,
+                                     "busy": False, "hist": [],
+                                     "backend": "local", "url": "",
+                                     "proc": None}
+        # ✦ v4.2: نظام الإضافات — tid → دالة بناء الصفحة من plugins/
+        self._plugin_pages: Dict[str, Callable] = {}
+        # ✦ v4.5: حالة الخزائن المشفّرة — تُمسح كلمة السر من الذاكرة عند القفل
+        self._vault: Dict[str, Any] = {"name": None, "pw": "", "entries": [],
+                                       "unlocked": False, "last_touch": 0.0,
+                                       "edit_idx": None}
 
         self.title(f"{APP_NAME} v{APP_VERSION}")
         self.geometry("1280x800")
@@ -1010,6 +3435,14 @@ class ToolboxApp(ctk.CTk):
         self.show_tool(self.current)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.after(1200, self._tick_monitor)
+        self.after(40, self._pump_ui)
+        # ✦ v4.2: ربط واجهة الإضافات ثم تحميل plugins/ ثم تحديث القائمة
+        try:
+            toolbox_api._bind(self, TRANSLATIONS, _T_CACHE)
+            self._load_plugins()
+            self._rebuild_nav()
+        except Exception:
+            traceback.print_exc()
 
     # ── ترجمة مختصرة
     def t(self, key: str) -> str:
@@ -1056,9 +3489,8 @@ class ToolboxApp(ctk.CTk):
             self.mode_switch.select()
         self.mode_switch.pack(side="left", padx=4)
 
-        # الشريط الجانبي
-        self.sidebar = ctk.CTkScrollableFrame(self, width=248, corner_radius=0,
-                                              fg_color=CC("surface"))
+        self.sidebar = ctk.CTkFrame(self, width=260, corner_radius=0,
+                                    fg_color=CC("surface"))
         self.sidebar.grid(row=1, column=0, sticky="ns")
         self.sidebar.grid_propagate(False)
 
@@ -1066,10 +3498,17 @@ class ToolboxApp(ctk.CTk):
                                          placeholder_text=self.t("Search tools…"),
                                          height=34)
         self.search_entry.pack(fill="x", padx=8, pady=(6, 8))
-        self.search_entry.bind("<KeyRelease>", lambda e: self._rebuild_nav())
+        # ✦ v4.0: debounce للبحث + Escape يمسح البحث
+        self.search_entry.bind("<KeyRelease>", self._on_search_key)
+        self.search_entry.bind("<Escape>", self._clear_search)
 
-        self.nav_holder = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        # ✦ v4.0: قائمة جانبية قابلة للتمرير — كل الأدوات متاحة حتى في النوافذ القصيرة
+        self.nav_holder = ctk.CTkScrollableFrame(
+            self.sidebar, fg_color="transparent",
+            scrollbar_button_color=CC("border"),
+            scrollbar_button_hover_color=CC("primary"))
         self.nav_holder.pack(fill="both", expand=True)
+        self._setup_nav_scroll()
 
         # منطقة المحتوى
         self.content_wrap = ctk.CTkFrame(self, fg_color=CC("bg"), corner_radius=0)
@@ -1085,9 +3524,18 @@ class ToolboxApp(ctk.CTk):
                          sticky="e" if self.rtl else "w", padx=12)
 
         self._rebuild_nav()
+        # ✦ v4.0: فحص overflow وعرض تلميح "اسحب للأسفل ↓" عند أول تشغيل فقط
+        self.after(900, self._maybe_show_nav_hint)
 
     # ── بناء الشريط الجانبي (مع الطي والبحث والمفضلة والحديثة)
-    def _rebuild_nav(self):
+    def _rebuild_nav(self, scroll_to_top: bool = False):
+        # ✦ v4.0: حفظ موضع التمرير قبل الإعادة — لا قفز مزعج عند الطي/التوسيع
+        frac = 0.0
+        if not scroll_to_top and self.nav_canvas is not None:
+            try:
+                frac = self.nav_canvas.yview()[0]
+            except Exception:
+                frac = 0.0
         for w in self.nav_holder.winfo_children():
             w.destroy()
         self.nav_buttons.clear()
@@ -1097,7 +3545,15 @@ class ToolboxApp(ctk.CTk):
             if not q:
                 return True
             hay = f"{tool.title} {self.t(tool.title)} {tool.keywords} {tool.tid}".lower()
-            return q in hay
+            if q in hay:
+                return True
+            # ✦ v4.0: بحث ضبابي عبر difflib — مطابقة كلمة-بكلمة ليتحمّل
+            #   الأخطاء المطبعية في استعلامات كلمة واحدة أو متعددة
+            tokens = set(hay.split())
+            for qw in q.split():
+                if len(qw) >= 3 and difflib.get_close_matches(qw, tokens, n=1, cutoff=0.75):
+                    return True
+            return False
 
         favs = [f for f in self.settings.get("favorites", []) if f in TOOL_BY_ID]
         if favs and not q:
@@ -1112,10 +3568,12 @@ class ToolboxApp(ctk.CTk):
                 self._nav_button(TOOL_BY_ID[tid])
 
         collapsed = set(self.settings.get("collapsed", []))
+        visible_count = 0
         for sec in SECTIONS:
             items = [t for t in TOOLS if t.section == sec and match(t)]
             if not items:
                 continue
+            visible_count += len(items)
             is_open = q != "" or sec not in collapsed
             self._nav_header(f"{'▾' if is_open else '▸'} {self.t(sec)}",
                              cmd=lambda s=sec: self._toggle_section(s))
@@ -1123,13 +3581,189 @@ class ToolboxApp(ctk.CTk):
                 for tool in items:
                     self._nav_button(tool)
 
+        # ✦ v4.0: عدّاد نتائج البحث في شريط الحالة
+        if q:
+            self.set_status(self.t("{n} tools found").format(n=visible_count))
+
+        # ✦ v4.0: موضع التمرير — للأعلى عند البحث، أو الحفاظ عند الطي/التوسيع
+        if scroll_to_top:
+            self._nav_scroll_top()
+        elif frac > 0:
+            self._nav_scroll_restore(frac)
+        # ✦ v4.0: تحديث الإخفاء التلقائي لشريط التمرير بعد إعادة البناء
+        self.after(70, self._update_nav_scrollbar)
+
+    # ── v4.0: إدارة تمرير القائمة الجانبية ─────────────────────
+    def _setup_nav_scroll(self):
+        """تهيئة القائمة القابلة للتمرير: سماكة 6px + إخفاء تلقائي + خطوط مخزّنة."""
+        try:
+            self.nav_canvas = getattr(self.nav_holder, "_parent_canvas", None)
+            self.nav_scrollbar = getattr(self.nav_holder, "_scrollbar", None)
+            self._ctk_wheel_native = hasattr(self.nav_holder, "_mouse_wheel_all")
+            # خطوط مخزّنة: توفير ~70 إنشاء خط في كل إعادة بناء
+            self._nav_font_header = ctk.CTkFont(size=12, weight="bold")
+            self._nav_font_item = ctk.CTkFont(size=13)
+            try:
+                if self.nav_scrollbar is not None:
+                    self.nav_scrollbar.configure(width=6)      # شريط رفيع 6px
+            except Exception:
+                pass
+            if self.nav_canvas is not None:
+                # فحص الإخفاء التلقائي عند تغيّر حجم النافذة أو المحتوى
+                self.nav_canvas.bind("<Configure>",
+                                     lambda e: self.after(60, self._update_nav_scrollbar),
+                                     add="+")
+            # ربط احتياطي للعجلة (customtkinter < 6) — CTk 6.x يديرها أصلًا حتى فوق الأزرار
+            if not self._ctk_wheel_native:
+                self._bind_nav_wheel(self.nav_holder)
+                if self.nav_canvas is not None:
+                    self._bind_nav_wheel(self.nav_canvas)
+        except Exception:
+            pass
+
+    def _bind_nav_wheel(self, widget):
+        """ربط احتياطي لعجلة الفأرة (لإصدارات customtkinter الأقدم من 6)."""
+        if getattr(self, "_ctk_wheel_native", False):
+            return
+        try:
+            if os.name == "posix" and sys.platform != "darwin":
+                widget.bind("<Button-4>", self._nav_wheel_scroll, add="+")
+                widget.bind("<Button-5>", self._nav_wheel_scroll, add="+")
+            else:
+                widget.bind("<MouseWheel>", self._nav_wheel_scroll, add="+")
+        except Exception:
+            pass
+
+    def _nav_wheel_scroll(self, event):
+        """تمرير القائمة بعجلة الفأرة (نفس معادلات CTk 6) — يعمل فوق الأزرار."""
+        try:
+            canvas = self.nav_canvas
+            if canvas is None:
+                return
+            if sys.platform.startswith("win"):
+                canvas.yview("scroll", -int(event.delta / 6), "units")
+            elif sys.platform == "darwin":
+                canvas.yview("scroll", -event.delta, "units")
+            else:
+                canvas.yview_scroll(-1 if getattr(event, "num", 0) == 4 else 1, "units")
+            self._hide_nav_hint()
+            return "break"
+        except Exception:
+            return None
+
+    def _update_nav_scrollbar(self):
+        """إخفاء شريط التمرير تلقائيًا عندما لا تكون هناك حاجة له."""
+        try:
+            canvas = self.nav_canvas
+            sb = self.nav_scrollbar
+            if canvas is None or sb is None:
+                return
+            if canvas.yview() == (0.0, 1.0):
+                if sb.winfo_manager():
+                    sb.grid_remove()
+            else:
+                if not sb.winfo_manager():
+                    sb.grid()
+        except Exception:
+            pass
+
+    def _nav_scroll_top(self):
+        """تمرير القائمة إلى الأعلى (يُستدعى عند البحث)."""
+        try:
+            if self.nav_canvas is not None:
+                self.nav_canvas.yview_moveto(0.0)
+        except Exception:
+            pass
+
+    def _nav_scroll_restore(self, frac: float):
+        """استعادة موضع التمرير بعد إعادة البناء (مع انتظار اكتمال التخطيط)."""
+        try:
+            canvas = self.nav_canvas
+            if canvas is None:
+                return
+
+            def _apply():
+                try:
+                    canvas.update_idletasks()
+                    canvas.yview_moveto(max(0.0, min(1.0, frac)))
+                except Exception:
+                    pass
+
+            self.after(10, _apply)
+        except Exception:
+            pass
+
+    def _on_search_key(self, event=None):
+        """debounce للبحث (180ms) — سلاسة الكتابة مع 60+ أداة."""
+        if getattr(event, "keysym", "") in ("Up", "Down", "Left", "Right", "Return", "Escape"):
+            return
+        if self._search_after is not None:
+            try:
+                self.after_cancel(self._search_after)
+            except Exception:
+                pass
+        self._search_after = self.after(180, self._search_fire)
+
+    def _search_fire(self):
+        self._search_after = None
+        # ✦ البحث يمرّر القائمة لأعلى تلقائيًا
+        self._rebuild_nav(scroll_to_top=True)
+
+    def _clear_search(self, event=None):
+        """Escape في خانة البحث يمسحها ويعيد القائمة كاملة."""
+        self.search_entry.delete(0, "end")
+        self._rebuild_nav(scroll_to_top=True)
+
+    def _maybe_show_nav_hint(self):
+        """تلميح "اسحب للأسفل ↓" عند أول تشغيل فقط إذا وُجد overflow."""
+        try:
+            if self.settings.get("hint_scroll_shown"):
+                return
+            canvas = self.nav_canvas
+            if canvas is None or not canvas.winfo_ismapped():
+                self.after(600, self._maybe_show_nav_hint)      # التخطيط لم يكتمل بعد
+                return
+            bbox = canvas.bbox("all")
+            if not bbox:
+                return
+            if bbox[3] - bbox[1] <= canvas.winfo_height() + 4:
+                # لا overflow أبدًا (شاشة كبيرة) — لا داعي للتلميح مستقبلًا
+                self.settings["hint_scroll_shown"] = True
+                self.save_settings()
+                return
+            self._nav_hint = ctk.CTkLabel(
+                self.sidebar, text=self.t("Scroll for more ↓"),
+                height=28, corner_radius=8,
+                fg_color=CC("primary"), text_color="#ffffff",
+                font=ctk.CTkFont(size=12, weight="bold"))
+            self._nav_hint.place(relx=0.5, rely=0.96, anchor="s", relwidth=0.72)
+            self.settings["hint_scroll_shown"] = True
+            self.save_settings()
+            self.after(5200, self._hide_nav_hint)
+            # يختفي عند أول تمرير أيضًا
+            for seq in (("<MouseWheel>",) if os.name != "posix" or sys.platform == "darwin"
+                        else ("<Button-4>", "<Button-5>")):
+                self.bind_all(seq, lambda e: self._hide_nav_hint(), add="+")
+        except Exception:
+            pass
+
+    def _hide_nav_hint(self):
+        try:
+            if self._nav_hint is not None:
+                self._nav_hint.place_forget()
+                self._nav_hint.destroy()
+                self._nav_hint = None
+        except Exception:
+            pass
+
     def _nav_header(self, text: str, cmd: Optional[Callable] = None):
         b = ctk.CTkButton(self.nav_holder, text=text, anchor="e" if self.rtl else "w",
                           height=28, fg_color="transparent",
                           hover_color=CC("surface2"), text_color=CC("muted"),
-                          font=ctk.CTkFont(size=12, weight="bold"),
+                          font=self._nav_font_header,
                           command=cmd or (lambda: None))
         b.pack(fill="x", padx=6, pady=(8, 2))
+        self._bind_nav_wheel(b)
 
     def _nav_button(self, tool: Tool):
         active = tool.tid == self.current
@@ -1139,10 +3773,11 @@ class ToolboxApp(ctk.CTk):
             fg_color=CC("primary") if active else "transparent",
             hover_color=CC("primary_h") if active else CC("surface2"),
             text_color=("#ffffff" if active else C("text")),
-            font=ctk.CTkFont(size=13),
+            font=self._nav_font_item,
             command=lambda tid=tool.tid: self.show_tool(tid))
         b.pack(fill="x", padx=6, pady=1)
         self.nav_buttons[tool.tid] = b
+        self._bind_nav_wheel(b)
 
     def _toggle_section(self, sec: str):
         col = set(self.settings.get("collapsed", []))
@@ -1159,6 +3794,19 @@ class ToolboxApp(ctk.CTk):
                                             self.toast(self.t("Done"), "ok")))
         self.bind("<Escape>", lambda e: self._close_palette())
         self.bind("<Control-f>", lambda e: self.search_entry.focus_set())
+        # ✦ v4.0: اختصارات إضافية
+        self.bind("<F1>", lambda e: self.show_tool("about"))
+        self.bind("<Control-comma>", lambda e: self.show_tool("settings"))
+        self.bind("<Control-d>", self._kbd_toggle_mode)
+        self.bind("<Control-D>", self._kbd_toggle_mode)
+
+    def _kbd_toggle_mode(self, event=None):
+        """Ctrl+D: تبديل الوضع الداكن/الفاتح."""
+        try:
+            self.mode_switch.toggle()
+        except Exception:
+            pass
+        self._toggle_mode()
 
     # ── تبديل الوضع واللغة
     def _toggle_mode(self):
@@ -1174,7 +3822,7 @@ class ToolboxApp(ctk.CTk):
         self.settings["lang"] = code
         self.save_settings()
         self.search_entry.configure(placeholder_text=self.t("Search tools…"))
-        self._rebuild_nav()
+        self._rebuild_nav(scroll_to_top=True)
         self.show_tool(self.current)          # تبديل فوري بلا إعادة تشغيل
         self.toast(f"{LANG_NAMES[code]} ✓", "ok")
 
@@ -1183,6 +3831,20 @@ class ToolboxApp(ctk.CTk):
         jsave(F_SETTINGS, self.settings)
 
     def on_close(self):
+        for flag in self._stop_flags.values():
+            flag.set()
+        try:                                   # ✦ v4.1: إيقاف التوليد وتحرير موديل LLM
+            if self._llm.get("stop") is not None:
+                self._llm["stop"].set()
+            self._llm["model"] = None
+            _pr = self._llm.get("proc")        # ✦ v4.3: إيقاف llama-server المُشغَّل تلقائيًا
+            if _pr is not None and _pr.poll() is None:
+                _pr.terminate()
+                self._llm["proc"] = None
+        except Exception:
+            pass
+        gc.collect()
+        self._cancel_timers()
         self.save_settings()
         try:
             if self._pb_proc and self._pb_proc.poll() is None:
@@ -1190,6 +3852,24 @@ class ToolboxApp(ctk.CTk):
         except Exception:
             pass
         self.destroy()
+
+    # ── قناة آمنة لتحديث الواجهة من الخيوط ─────────────────
+    def _ui(self, fn: Callable, *args, **kwargs):
+        """جدولة استدعاء في الخيط الرئيسي — آمنة الاستدعاء من أي thread."""
+        self._ui_q.put((fn, args, kwargs))
+
+    def _pump_ui(self):
+        """تنفيذ استدعاءات الواجهة المؤجلة كل 40ms — يغني عن after(0) من الخيوط."""
+        try:
+            while True:
+                fn, args, kwargs = self._ui_q.get_nowait()
+                try:
+                    fn(*args, **kwargs)
+                except Exception:
+                    pass
+        except queue.Empty:
+            pass
+        self.after(40, self._pump_ui)
 
     # ── التوستات والنوافذ الموحّدة ─────────────────────────
     def toast(self, msg: str, kind: str = "info", ms: int = 2600):
@@ -1259,10 +3939,10 @@ class ToolboxApp(ctk.CTk):
         def runner():
             try:
                 res = work()
-                self.after(0, lambda: self._async_ok(res, done, label))
+                self._ui(self._async_ok, res, done, label)
             except Exception as e:
                 err = f"{type(e).__name__}: {e}"
-                self.after(0, lambda: self._async_err(err, label))
+                self._ui(self._async_err, err, label)
 
         threading.Thread(target=runner, daemon=True).start()
 
@@ -1303,6 +3983,13 @@ class ToolboxApp(ctk.CTk):
         entry.pack(fill="x", padx=12, pady=12)
         listf = ctk.CTkScrollableFrame(win, fg_color="transparent")
         listf.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        pal: Dict[str, Any] = {"tids": [], "btns": [], "sel": 0}
+
+        def highlight():
+            for i, b in enumerate(pal["btns"]):
+                active = i == pal["sel"]
+                b.configure(fg_color=CC("primary") if active else "transparent",
+                            text_color=("#ffffff" if active else CC("text")))
 
         def refresh(*_):
             for w in listf.winfo_children():
@@ -1310,24 +3997,34 @@ class ToolboxApp(ctk.CTk):
             q = entry.get().strip().lower()
             hits = [t for t in TOOLS
                     if not q or q in f"{t.title} {self.t(t.title)} {t.keywords}".lower()][:30]
+            pal["tids"], pal["btns"], pal["sel"] = [], [], 0
             for tool in hits:
-                ctk.CTkButton(
+                pal["tids"].append(tool.tid)
+                b = ctk.CTkButton(
                     listf, text=f"{tool.icon}  {self.t(tool.title)}   ·   {self.t(tool.section)}",
                     anchor="e" if self.rtl else "w", height=32, fg_color="transparent",
                     hover_color=CC("primary"), text_color=CC("text"),
                     command=lambda tid=tool.tid: (self._close_palette(), self.show_tool(tid))
-                ).pack(fill="x", pady=1)
+                )
+                b.pack(fill="x", pady=1)
+                pal["btns"].append(b)
+            highlight()
 
-        def go_first(_=None):
-            q = entry.get().strip().lower()
-            hits = [t for t in TOOLS
-                    if not q or q in f"{t.title} {self.t(t.title)} {t.keywords}".lower()]
-            if hits:
+        def move(d: int):
+            if not pal["btns"]:
+                return
+            pal["sel"] = (pal["sel"] + d) % len(pal["btns"])
+            highlight()
+
+        def go(_=None):
+            if pal["tids"]:
                 self._close_palette()
-                self.show_tool(hits[0].tid)
+                self.show_tool(pal["tids"][pal["sel"]])
 
         entry.bind("<KeyRelease>", refresh)
-        entry.bind("<Return>", go_first)
+        entry.bind("<Return>", go)
+        entry.bind("<Down>", lambda e: move(1))
+        entry.bind("<Up>", lambda e: move(-1))
         win.bind("<Escape>", lambda e: self._close_palette())
         refresh()
         win.after(120, lambda: (win.lift(), entry.focus_set()))
@@ -1342,6 +4039,11 @@ class ToolboxApp(ctk.CTk):
         """عرض صفحة الأداة وتحديث السجل والشريط الجانبي."""
         if tid not in TOOL_BY_ID:
             return
+        if self.current == "llm" and self._llm.get("stop") is not None:
+            try:
+                self._llm["stop"].set()        # ✦ v4.1: مغادرة الصفحة توقف التوليد
+            except Exception:
+                pass
         self._cancel_timers()
         self.current = tid
         tool = TOOL_BY_ID[tid]
@@ -1362,15 +4064,19 @@ class ToolboxApp(ctk.CTk):
         ctk.CTkLabel(header, text=f"{tool.icon}  {self.t(tool.title)}",
                      font=ctk.CTkFont(size=22, weight="bold")).pack(side=side)
         fav = tid in self.settings.get("favorites", [])
-        ctk.CTkButton(header, text="⭐" if fav else "☆", width=40, height=30,
-                      fg_color="transparent", hover_color=CC("surface2"),
-                      text_color=CC("warn") if fav else CC("muted"),
-                      command=lambda: self.toggle_fav(tid)).pack(side=side, padx=8)
+        self._fav_btn = ctk.CTkButton(header, text="⭐" if fav else "☆", width=40,
+                                      height=30, fg_color="transparent",
+                                      hover_color=CC("surface2"),
+                                      text_color=CC("warn") if fav else CC("muted"),
+                                      command=lambda: self.toggle_fav(tid))
+        self._fav_btn.pack(side=side, padx=8)
 
         self.page = ctk.CTkScrollableFrame(self.content_wrap, fg_color="transparent")
         self.page.grid(row=1, column=0, sticky="nsew", padx=10, pady=8)
 
         builder = getattr(self, f"page_{tid}", None)
+        if builder is None and tid in self._plugin_pages:   # ✦ v4.2: صفحة إضافة
+            builder = self._make_plugin_builder(tid)
         try:
             if builder:
                 builder(self.page)
@@ -1383,6 +4089,77 @@ class ToolboxApp(ctk.CTk):
         self.title_label.configure(text=f"{self.t(tool.section)}  ›  {self.t(tool.title)}")
         self.set_status("")
 
+    # ═════════════════════════════════════════════════════
+    # 【7.4】 v4.2: نظام الإضافات (plugins/)
+    # ═════════════════════════════════════════════════════
+    def _load_plugins(self):
+        """فحص مجلد plugins/ وتحميل كل *.py بأمان — خطأ أي إضافة معزول.
+
+        كل ملف يستورد toolbox_api ويسجّل أدواته عبر @register_tool؛
+        بعد التحميل تُدمج الأدوات في TOOLS/TOOL_BY_ID وتُنشأ الأقسام
+        الجديدة تلقائيًا فتظهر في القائمة والبحث ولوحة الأوامر والمفضلة.
+        """
+        if toolbox_api is None:
+            return
+        pdir = os.path.join(APP_DIR, "plugins")
+        if not os.path.isdir(pdir):
+            return
+        import importlib.util
+        for fname in sorted(os.listdir(pdir)):
+            if (not fname.endswith(".py")
+                    or fname.startswith(("_", "."))
+                    or fname == "toolbox_api.py"):
+                continue
+            path = os.path.join(pdir, fname)
+            try:
+                modname = ("toolbox_plugin_"
+                           + fname[:-3].replace("-", "_").replace(".", "_"))
+                spec = importlib.util.spec_from_file_location(modname, path)
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[modname] = mod
+                spec.loader.exec_module(mod)
+            except Exception:
+                print(f"[plugins] {fname}: import failed\n{traceback.format_exc()}")
+                self.toast(self.t("Plugin error: {name}").format(name=fname),
+                           "err", 4200)
+                continue
+        # دمج الأدوات المسجّلة (رفض المكرر بأمان)
+        known = set(TOOL_BY_ID) | set(self._plugin_pages)
+        new: List[Tool] = []
+        for reg in toolbox_api.get_registry():
+            if reg["tid"] in known:
+                print(f"[plugins] duplicate tid skipped: {reg['tid']}")
+                continue
+            known.add(reg["tid"])
+            new.append(Tool(reg["tid"], reg["title"], reg["section"],
+                            reg["icon"], reg["description"]))
+            self._plugin_pages[reg["tid"]] = reg["builder"]
+        if new:
+            TOOLS.extend(new)
+            TOOL_BY_ID.update({t.tid: t for t in new})
+            for t in new:
+                if t.section not in SECTIONS:
+                    SECTIONS.append(t.section)   # قسم جديد يُنشأ تلقائيًا
+            self.set_status(self.t("{n} plugins loaded").format(n=len(new)))
+            print(f"[plugins] loaded {len(new)} tool(s)")
+
+    def _make_plugin_builder(self, tid: str) -> Callable:
+        """غلاف آمن حول دالة بناء صفحة الإضافة — الخطأ يُعرض داخل الصفحة."""
+        pb = self._plugin_pages[tid]
+
+        def _build(parent):
+            try:
+                pb(toolbox_api, parent)
+            except Exception:
+                traceback.print_exc()
+                c = self.card(parent, f"⚠ {self.t('Plugin crashed')}")
+                ctk.CTkLabel(c, text=traceback.format_exc()[-1600:],
+                             justify="left", text_color=CC("err"),
+                             font=ctk.CTkFont(family="Courier", size=11),
+                             wraplength=760).pack(anchor="w", padx=14,
+                                                  pady=(0, 12))
+        return _build
+
     def toggle_fav(self, tid: str):
         favs = list(self.settings.get("favorites", []))
         if tid in favs:
@@ -1391,7 +4168,15 @@ class ToolboxApp(ctk.CTk):
             favs.append(tid)
         self.settings["favorites"] = favs
         self.save_settings()
-        self.show_tool(self.current)
+        # تحديث زر النجمة مباشرة بدل إعادة بناء الصفحة — حماية لمدخلات المستخدم
+        try:
+            if self._fav_btn is not None and self._fav_btn.winfo_exists():
+                is_fav = tid in favs
+                self._fav_btn.configure(text="⭐" if is_fav else "☆",
+                                        text_color=CC("warn") if is_fav else CC("muted"))
+        except Exception:
+            pass
+        self._rebuild_nav()
 
     def _cancel_timers(self):
         for key, job in list(self._timers.items()):
@@ -1492,7 +4277,31 @@ class ToolboxApp(ctk.CTk):
                 self.ram_hist = self.ram_hist[-60:]
         except Exception:
             pass
+        # ✦ v4.5: قفل تلقائي للخزنة بعد خمول _VAULT_LOCK_SECS
+        try:
+            v = self._vault
+            if (v.get("unlocked")
+                    and time.time() - v.get("last_touch", 0.0) > _VAULT_LOCK_SECS):
+                self._vault_lock_now(auto=True)
+                if self.current == "vault":
+                    self.show_tool("vault")            # إعادة رسم الصفحة مقفولة
+        except Exception:
+            pass
         self.after(1200, self._tick_monitor)
+
+    def _vault_lock_now(self, auto: bool = False):
+        """قفل الخزنة الحالية ومسح كلمة السر والإدخالات من الذاكرة."""
+        v = self._vault
+        had = v.get("unlocked")
+        v["pw"] = ""
+        v["entries"] = []
+        v["unlocked"] = False
+        v["last_touch"] = 0.0
+        v["edit_idx"] = None
+        if had:
+            msg = (self.t("Vault auto-locked (idle)") if auto
+                   else self.t("Vault locked"))
+            self.toast("🔒 " + msg, "warn")
 
     def page_dashboard(self, p):
         if not self.need(p, "psutil"):
@@ -1600,7 +4409,7 @@ class ToolboxApp(ctk.CTk):
                     command=self._set_mode)
 
         k = self.card(p, "🔑 API Keys")
-        ctk.CTkLabel(k, text="المفاتيح تُحفظ محليًا فقط في ultimate_toolbox_settings.json",
+        ctk.CTkLabel(k, text="🔒 " + self.t("Keys are stored locally only."),
                      text_color=CC("muted")).pack(anchor="w", padx=14)
         keys = self.settings["api_keys"]
         entries = {}
@@ -1667,6 +4476,7 @@ class ToolboxApp(ctk.CTk):
         s = self.card(p, "⌨️ Shortcuts")
         ctk.CTkLabel(s, justify="left", font=ctk.CTkFont(family="Courier", size=12),
                      text=("  Ctrl+K   Command palette\n"
+                           "  ↑ / ↓    Navigate palette results\n"
                            "  Ctrl+F   Focus search\n"
                            "  Ctrl+S   Save settings\n"
                            "  Esc      Close palette\n"
@@ -1722,7 +4532,8 @@ class ToolboxApp(ctk.CTk):
                 L += ["", f" Boot time  : {_dt.datetime.fromtimestamp(psutil.boot_time()):%Y-%m-%d %H:%M}",
                       f" Uptime     : {human_time(time.time() - psutil.boot_time())}"]
             else:
-                L.append("\n [!] psutil غير مثبت — التفاصيل محدودة. pip install psutil")
+                L.append("\n [!] " + self.t("psutil missing — limited info.") +
+                         "  pip install psutil")
             return "\n".join(L)
 
         self.run_async(collect, lambda r: self.set_box(out, r), st)
@@ -1772,7 +4583,20 @@ class ToolboxApp(ctk.CTk):
         def kill():
             try:
                 pid = int(pid_e.get().strip())
-                psutil.Process(pid).terminate()
+            except Exception:
+                self.toast("invalid PID", "err")
+                return
+            if not messagebox.askyesno(self.t("Process Manager"),
+                                       f"{self.t('Terminate process?')}  (PID {pid})"):
+                return
+            try:
+                pr = psutil.Process(pid)
+                pr.terminate()
+                try:
+                    pr.wait(timeout=3)
+                except psutil.TimeoutExpired:
+                    pr.kill()                    # تصعيد إلى kill إذا لم يستجب
+                    pr.wait(timeout=3)
                 self.toast(f"terminated {pid}", "ok")
                 self.run_async(load, lambda r_: self.set_box(out, r_), st)
             except Exception as e:
@@ -1810,17 +4634,18 @@ class ToolboxApp(ctk.CTk):
                     pass
             return "\n".join(L)
 
-        self.set_box(out, local_info())
+        self.run_async(local_info, lambda r_: self.set_box(out, r_), st)
 
         def public_ip():
             def work():
-                return http_get("https://api.ipify.org?format=json")[1]
-            self.run_async(work,
-                           lambda r_: self.set_box(out, out.get("1.0", "end").rstrip() +
-                                                   f"\n Public IP  : {json.loads(r_).get('ip','?')}"),
-                           st)
+                base = local_info()
+                ip = json.loads(http_get("https://api.ipify.org?format=json")[1]).get("ip", "?")
+                return base + f"\n Public IP  : {ip}"
+            self.run_async(work, lambda r_: self.set_box(out, r_), st)
 
-        self.buttons(c, [(self.t("Refresh"), lambda: self.set_box(out, local_info())),
+        self.buttons(c, [(self.t("Refresh"),
+                          lambda: self.run_async(local_info,
+                                                 lambda r_: self.set_box(out, r_), st)),
                          ("🌍 Public IP", public_ip)])
 
         pc = self.card(p, "📶 Ping")
@@ -1845,28 +4670,57 @@ class ToolboxApp(ctk.CTk):
         stop = threading.Event()
         self._stop_flags["ports"] = stop
 
+        common = {20: "ftp-data", 21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp",
+                  53: "dns", 67: "dhcp", 80: "http", 110: "pop3", 123: "ntp",
+                  135: "msrpc", 139: "netbios", 143: "imap", 161: "snmp",
+                  389: "ldap", 443: "https", 445: "smb", 465: "smtps",
+                  587: "submission", 993: "imaps", 995: "pop3s", 1433: "mssql",
+                  1521: "oracle", 2049: "nfs", 3306: "mysql", 3389: "rdp",
+                  5432: "postgres", 5555: "adb", 6379: "redis", 8080: "http-alt",
+                  8443: "https-alt", 9200: "elasticsearch", 27017: "mongodb"}
+
         def scan() -> str:
             stop.clear()
             h = host.get().strip()
+            if not h:
+                raise ValueError("host required")
             a, _, b = rng.get().strip().partition("-")
-            lo, hi = int(a), int(b or a)
-            hi = min(hi, 65535)
-            if hi - lo > 5000:
-                raise ValueError("range too wide (max 5000 ports)")
-            found = []
-            common = {21: "ftp", 22: "ssh", 23: "telnet", 25: "smtp", 53: "dns",
-                      80: "http", 110: "pop3", 143: "imap", 443: "https",
-                      3306: "mysql", 3389: "rdp", 5432: "postgres", 6379: "redis",
-                      8080: "http-alt", 27017: "mongodb"}
-            for port in range(lo, hi + 1):
+            lo, hi = int(a or 0), int(b or a or 0)
+            lo, hi = max(1, lo), min(hi, 65535)
+            if lo > hi:
+                raise ValueError("invalid range")
+            if hi - lo + 1 > 20000:
+                raise ValueError("range too wide (max 20000 ports)")
+            total = hi - lo + 1
+            found: List[str] = []
+            done = [0]
+            lock = threading.Lock()
+
+            def probe(port: int):
                 if stop.is_set():
-                    break
+                    return
                 s = socket.socket()
-                s.settimeout(0.25)
-                if s.connect_ex((h, port)) == 0:
-                    found.append(f"  {port:>6}  OPEN   {common.get(port, '')}")
-                s.close()
-            return "\n".join(found) or "no open ports found"
+                s.settimeout(0.5)
+                try:
+                    if s.connect_ex((h, port)) == 0:
+                        with lock:
+                            found.append(f"  {port:>6}  OPEN   {common.get(port, '')}")
+                finally:
+                    s.close()
+                    with lock:
+                        done[0] += 1
+                        if done[0] % 200 == 0 or done[0] == total:
+                            self._ui(st.configure, text=f"⏳ {done[0]}/{total} …",
+                                     text_color=CC("warn"))
+
+            workers = min(300, max(32, total // 4))
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                list(ex.map(probe, range(lo, hi + 1)))
+            found.sort()
+            if stop.is_set():
+                return "\n".join(found) + f"\n\n⏹ stopped at {done[0]}/{total}"
+            return ("\n".join(found) or "no open ports found") + \
+                f"\n\n✓ scanned {total} ports in parallel"
 
         self.buttons(c, [("▶ " + self.t("Start"),
                           lambda: self.run_async(scan, lambda r_: self.set_box(out, r_), st)),
@@ -1928,9 +4782,11 @@ class ToolboxApp(ctk.CTk):
 
     def page_httpclient(self, p):
         c = self.card(p, "🛰️ " + self.t("HTTP Client"))
-        method = self.option(c, "method", ["GET", "POST"], "GET", 120)
+        method = self.option(c, "method", ["GET", "POST", "PUT", "DELETE", "HEAD"],
+                             "GET", 140)
         url = self.field(c, "URL", "https://api.github.com", 440)
-        ctk.CTkLabel(c, text="JSON body (POST)", text_color=CC("muted")).pack(
+        hdrs_e = self.field(c, "headers (Key: value per line)", "", 440)
+        ctk.CTkLabel(c, text="body (JSON / raw)", text_color=CC("muted")).pack(
             anchor="e" if self.rtl else "w", padx=14)
         body = self.textbox(c, 110)
         out = self.textbox(c, 300)
@@ -1938,18 +4794,27 @@ class ToolboxApp(ctk.CTk):
 
         def send() -> str:
             u = url.get().strip()
-            if method.get() == "GET":
-                code, text = http_get(u)
-                head = f"HTTP {code}\n\n"
-            else:
-                payload = json.loads(body.get("1.0", "end").strip() or "{}")
-                text = json.dumps(http_post_json(u, payload), ensure_ascii=False, indent=2)
-                head = "POST OK\n\n"
+            if not u:
+                raise ValueError("URL required")
+            hmap: Dict[str, str] = {}
+            for ln in hdrs_e.get().splitlines():
+                if ":" in ln:
+                    k2, v2 = ln.split(":", 1)
+                    if k2.strip():
+                        hmap[k2.strip()] = v2.strip()
+            m = method.get()
+            payload = body.get("1.0", "end").strip()
+            data = payload if (payload and m not in ("GET", "HEAD")) else None
+            code, text, rhdrs = http_request(m, u, hmap, data=data)
             try:
                 text = json.dumps(json.loads(text), ensure_ascii=False, indent=2)
             except Exception:
                 pass
-            return head + text[:200000]
+            interesting = [k for k in ("Content-Type", "Content-Length", "Date",
+                                       "Server", "Cache-Control", "Location")
+                           if k in rhdrs]
+            L = [f"HTTP {code}"] + [f"{k}: {rhdrs[k]}" for k in interesting] + [""]
+            return "\n".join(L) if m == "HEAD" else "\n".join(L) + text[:200000]
 
         self.buttons(c, [("▶ " + self.t("Run"),
                           lambda: self.run_async(send, lambda r_: self.set_box(out, r_), st)),
@@ -2103,11 +4968,12 @@ class ToolboxApp(ctk.CTk):
 
     def page_dupes(self, p):
         c = self.card(p, "👯 " + self.t("Duplicate Finder"))
-        ctk.CTkLabel(c, text="خوارزمية 3 مراحل: الحجم ← بادئة 8KB ← تجزئة كاملة",
+        ctk.CTkLabel(c, text="🧬 " + self.t("3 stages: size → 8KB prefix → full hash"),
                      text_color=CC("muted")).pack(anchor="e" if self.rtl else "w", padx=14)
         folder = self._folder_picker(c)
         out = self.textbox(c, 340)
         st = self.statuslabel(c)
+        last: Dict[str, Any] = {"groups": []}
 
         def find() -> str:
             d = folder.get().strip()
@@ -2142,8 +5008,10 @@ class ToolboxApp(ctk.CTk):
                         continue
             dupes = {k: v for k, v in groups.items() if len(v) > 1}
             wasted = sum(os.path.getsize(v[0]) * (len(v) - 1) for v in dupes.values())
+            last["groups"] = list(dupes.values())
             L = [f"scanned groups: {len(by_size)}  ·  duplicate groups: {len(dupes)}",
-                 f"reclaimable: {human_size(wasted)}", ""]
+                 f"reclaimable: {human_size(wasted)}", "",
+                 "ℹ the FIRST path in each group is the one kept by “Delete”", ""]
             for h, paths in list(dupes.items())[:200]:
                 L.append(f"■ {h[:16]}…  ({human_size(os.path.getsize(paths[0]))})")
                 for fp in paths:
@@ -2151,8 +5019,37 @@ class ToolboxApp(ctk.CTk):
                 L.append("")
             return "\n".join(L)
 
+        def del_dupes():
+            groups = last.get("groups") or []
+            if not groups:
+                self.toast("run the scan first", "warn")
+                return
+            victims = [fp for grp in groups for fp in grp[1:]]
+            if not victims:
+                self.toast("nothing to delete", "info")
+                return
+            try:
+                freed = sum(os.path.getsize(v) for v in victims)
+            except OSError:
+                freed = 0
+            if not messagebox.askyesno(
+                    self.t("Duplicate Finder"),
+                    f"{self.t('Delete duplicates?')}\n"
+                    f"{len(victims)} file(s) · {human_size(freed)}"):
+                return
+            n = 0
+            for fp in victims:
+                try:
+                    os.remove(fp)
+                    n += 1
+                except OSError:
+                    continue
+            self.toast(f"deleted {n} file(s)", "ok")
+            self.run_async(find, lambda r_: self.set_box(out, r_), st)
+
         self.buttons(c, [("🔍 " + self.t("Run"),
                           lambda: self.run_async(find, lambda r_: self.set_box(out, r_), st)),
+                         ("🗑 " + self.t("Delete"), del_dupes),
                          (self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
 
     def page_rename(self, p):
@@ -2163,9 +5060,11 @@ class ToolboxApp(ctk.CTk):
         pre_e = self.field(c, "prefix", "", 200)
         suf_e = self.field(c, "suffix", "", 200)
         case_m = self.option(c, "case", ["keep", "lower", "UPPER", "Title"], "keep", 160)
+        use_rx = ctk.CTkCheckBox(c, text="find is regex")
+        use_rx.pack(anchor="e" if self.rtl else "w", padx=14, pady=2)
         dry = ctk.CTkCheckBox(c, text="Dry run (preview only)")
         dry.select()
-        dry.pack(anchor="e" if self.rtl else "w", padx=14, pady=4)
+        dry.pack(anchor="e" if self.rtl else "w", padx=14, pady=2)
         out = self.textbox(c, 280)
         st = self.statuslabel(c)
 
@@ -2174,26 +5073,37 @@ class ToolboxApp(ctk.CTk):
             if not os.path.isdir(d):
                 raise ValueError("folder not found")
             preview = bool(dry.get())
-            L, n = [], 0
+            L, n, skipped = [], 0, 0
             for name in sorted(os.listdir(d)):
                 src = os.path.join(d, name)
                 if not os.path.isfile(src):
                     continue
                 base, ext = os.path.splitext(name)
-                if find_e.get():
-                    base = base.replace(find_e.get(), repl_e.get())
+                try:
+                    if find_e.get():
+                        if use_rx.get():
+                            base = re.sub(find_e.get(), repl_e.get(), base)
+                        else:
+                            base = base.replace(find_e.get(), repl_e.get())
+                except re.error as e:
+                    raise ValueError(f"bad regex: {e}")
                 cm = case_m.get()
                 base = (base.lower() if cm == "lower" else base.upper() if cm == "UPPER"
                         else base.title() if cm == "Title" else base)
                 new = f"{pre_e.get()}{base}{suf_e.get()}{ext}"
                 if new == name:
                     continue
+                if not preview and os.path.exists(os.path.join(d, new)):
+                    L.append(f"  {name}  ⚠ skipped — target exists: {new}")
+                    skipped += 1
+                    continue
                 L.append(f"  {name}  →  {new}")
                 n += 1
                 if not preview:
                     os.rename(src, os.path.join(d, new))
             head = "PREVIEW — nothing renamed\n" if preview else "RENAMED\n"
-            return f"{head}{n} file(s)\n\n" + "\n".join(L[:500])
+            tail = f"\n\n⚠ {skipped} skipped (target exists)" if skipped else ""
+            return f"{head}{n} file(s){tail}\n\n" + "\n".join(L[:500])
 
         self.buttons(c, [("▶ " + self.t("Run"),
                           lambda: self.run_async(do, lambda r_: self.set_box(out, r_), st))])
@@ -2259,12 +5169,18 @@ class ToolboxApp(ctk.CTk):
             path = f.get().strip()
             if not os.path.isfile(path):
                 raise ValueError("file not found")
-            res = {a: file_hash(path, a) for a in ("md5", "sha1", "sha256", "sha512")}
             L = [f" size   : {human_size(os.path.getsize(path))}"]
-            L += [f" {a:<7}: {v}" for a, v in res.items()]
+            hashes: List[str] = []
+            for a in ("md5", "sha1", "sha256", "sha512", "sha3_256", "blake2b"):
+                try:
+                    v = file_hash(path, a)
+                    hashes.append(v)
+                    L.append(f" {a:<9}: {v}")
+                except Exception:          # بعض الإصدارات لا تدعم sha3
+                    continue
             exp = expect.get().strip().lower()
             if exp:
-                ok = exp in res.values()
+                ok = exp in hashes
                 L.append("")
                 L.append(" ✓ MATCH" if ok else " ✗ MISMATCH")
             return "\n".join(L)
@@ -2375,7 +5291,11 @@ class ToolboxApp(ctk.CTk):
             with open(dst, "w", encoding="utf-8", newline="") as o:
                 w = csv.DictWriter(o, fieldnames=cols)
                 w.writeheader()
-                w.writerows(data)
+                for rowd in data:
+                    flat = {k: (json.dumps(v, ensure_ascii=False)
+                                if isinstance(v, (dict, list)) else v)
+                            for k, v in rowd.items()}
+                    w.writerow(flat)
             return f"{len(data)} rows → {dst}\ncolumns: {', '.join(cols)}"
 
         self.buttons(c, [("CSV → JSON",
@@ -2575,7 +5495,17 @@ class ToolboxApp(ctk.CTk):
             cb.pack(side=side, padx=4)
             flags[name] = cb
         box = self.textbox(c, 170, "contact: omar@test.com, lina@demo.org")
+        repl = self.field(c, "replace with", "", 420)
         out = self.textbox(c, 220)
+
+        def replace_all():
+            try:
+                rx = re.compile(pat.get())
+                s = box.get("1.0", "end").rstrip("\n")
+                new, cnt = rx.subn(repl.get(), s)
+                self.set_box(out, f"✓ {cnt} replacement(ies)\n" + "-" * 40 + "\n" + new)
+            except re.error as e:
+                self.set_box(out, f"✗ invalid pattern: {e}")
 
         def test(*_):
             f = 0
@@ -2599,7 +5529,9 @@ class ToolboxApp(ctk.CTk):
 
         box.bind("<KeyRelease>", test)
         pat.bind("<KeyRelease>", test)
-        self.buttons(c, [(self.t("Run"), test)])
+        self.buttons(c, [(self.t("Run"), test),
+                         ("⇄ " + self.t("Replace"), replace_all),
+                         (self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
         test()
 
     def page_urlan(self, p):
@@ -2822,7 +5754,7 @@ class ToolboxApp(ctk.CTk):
                 cell = tk.Canvas(holder, height=90, width=110, bg=col, highlightthickness=0)
                 cell.pack(side="right" if self.rtl else "left", padx=4)
                 cell.bind("<Button-1>", lambda e, cc=col: self.copy_text(cc))
-            codes.configure(text="   ".join(hexes) + "   (اضغط على أي لون لنسخه)")
+            codes.configure(text="   ".join(hexes) + "   (" + self.t("Click a color to copy") + ")")
 
         self.buttons(c, [(self.t("Generate"), gen),
                          ("🎲 Random", lambda: (base.delete(0, "end"),
@@ -2925,7 +5857,7 @@ class ToolboxApp(ctk.CTk):
     # ═════════════════════════════════════════════════════
     def page_calc(self, p):
         c = self.card(p, "🧮 " + self.t("Calculator"))
-        ctk.CTkLabel(c, text="آمنة: تُحلَّل التعابير عبر ast — لا eval إطلاقًا",
+        ctk.CTkLabel(c, text=self.t("Safe: parsed via ast — no eval"),
                      text_color=CC("muted")).pack(anchor="e" if self.rtl else "w", padx=14)
         expr = ctk.CTkEntry(c, height=48, font=ctk.CTkFont(size=20))
         expr.pack(fill="x", padx=16, pady=8)
@@ -3045,7 +5977,7 @@ class ToolboxApp(ctk.CTk):
                     f" minutes  : {days * 1440:,}",
                     "",
                     f" age today       : {years} years",
-                    f" next milestone  : {(a.replace(year=a.year + years + 1) - _dt.date.today()).days} days",
+                    f" next milestone  : {next_birthday_days(a, years)} days",
                     f" weekday of d1   : {a:%A}",
                     f" weekday of d2   : {b:%A}",
                     f" ISO week d2     : {b.isocalendar()[1]}",
@@ -3126,11 +6058,10 @@ class ToolboxApp(ctk.CTk):
                 if left <= 0:
                     cstate["run"] = False
                     cdisp.configure(text="00:00", text_color=CC("err"))
-                    self.toast("⏰ Time is up!", "ok", 6000)
+                    self.toast("⏰ " + self.t("Time is up!"), "ok", 6000)
                     self.bell()
                 else:
-                    cdisp.configure(text=time.strftime("%M:%S", time.gmtime(left)),
-                                    text_color=CC("text"))
+                    cdisp.configure(text=fmt_mmss(left), text_color=CC("text"))
             self._timers["cd"] = self.after(250, ctick)
 
         def cstart():
@@ -3176,14 +6107,14 @@ class ToolboxApp(ctk.CTk):
                 left = st["end"] - time.time()
                 if left <= 0:
                     self.bell()
-                    self.toast("🍅 " + ("Break time!" if st["work"] else "Back to work!"),
-                               "ok", 5000)
+                    self.toast("🍅 " + (self.t("Break time!") if st["work"]
+                                        else self.t("Back to work!")), "ok", 5000)
                     if st["work"]:
                         st["cycles"] += 1
                     st["work"] = not st["work"]
                     start()
                 else:
-                    disp.configure(text=time.strftime("%M:%S", time.gmtime(left)))
+                    disp.configure(text=fmt_mmss(left))
                     bar.set(1 - left / st["total"])
             stats.configure(text=f"completed pomodoros: {st['cycles']}")
             self._timers["pomo"] = self.after(250, tick)
@@ -3304,6 +6235,13 @@ class ToolboxApp(ctk.CTk):
         self.buttons(c, [("💾 " + self.t("Save"), save),
                          ("📂 " + self.t("Load"), load),
                          ("📤 " + self.t("Export"), export)])
+        st.configure(text="💾 " + self.t("autosave every 30s"), text_color=CC("muted"))
+
+        def autosave():
+            save()
+            self._timers["notes_auto"] = self.after(30000, autosave)
+
+        self._timers["notes_auto"] = self.after(30000, autosave)
 
     def page_backup(self, p):
         c = self.card(p, "💾 " + self.t("Backup"))
@@ -3339,7 +6277,7 @@ class ToolboxApp(ctk.CTk):
             with open(F_NOTES, "w", encoding="utf-8") as f:
                 f.write(b.get("notes", ""))
             jsave(F_HISTORY, b.get("history", []))
-            return f"✓ imported from {path}\nرجاءً أعد تشغيل التطبيق لتطبيق كل شيء."
+            return f"✓ imported from {path}\n" + self.t("Restart the app to apply everything.")
 
         self.buttons(c, [("📤 " + self.t("Export"),
                           lambda: self.run_async(export_all, lambda r_: self.set_box(out, r_), st)),
@@ -3395,7 +6333,7 @@ class ToolboxApp(ctk.CTk):
 
     def page_picker(self, p):
         c = self.card(p, "🎯 " + self.t("Random Picker"))
-        ctk.CTkLabel(c, text="سطر واحد لكل عنصر", text_color=CC("muted")).pack(
+        ctk.CTkLabel(c, text=self.t("One item per line"), text_color=CC("muted")).pack(
             anchor="e" if self.rtl else "w", padx=14)
         box = self.textbox(c, 200, "Alice\nBob\nCarol\nDave")
         n = self.field(c, "pick", "1", 100)
@@ -3488,7 +6426,7 @@ class ToolboxApp(ctk.CTk):
                  "", " forecast:"]
             for day in d["weather"][:3]:
                 L.append(f"   {day['date']}   {day['mintempC']}°…{day['maxtempC']}°C")
-            L += ["", " 💡 أضف مفتاح OpenWeather في الإعدادات لتفاصيل أدق."]
+            L += ["", " 💡 " + self.t("Add OpenWeather key in Settings for more details.")]
             return "\n".join(L)
 
         self.buttons(c, [("🔄 " + self.t("Run"),
@@ -3677,6 +6615,8 @@ class ToolboxApp(ctk.CTk):
         out = self.textbox(c, 160)
         st = self.statuslabel(c)
 
+        last = {"short": ""}
+
         def fetch() -> str:
             u = url.get().strip()
             if not u.startswith("http"):
@@ -3685,13 +6625,14 @@ class ToolboxApp(ctk.CTk):
                                   urllib.parse.urlencode({"format": "simple", "url": u}))
             if code >= 400:
                 raise RuntimeError(text[:200])
+            last["short"] = text.strip()
             return f" short : {text.strip()}\n long  : {u}"
 
         self.buttons(c, [("🔗 " + self.t("Run"),
                           lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st)),
                          (self.t("Copy"),
-                          lambda: self.copy_text(out.get("1.0", "end").split()[2]
-                                                 if len(out.get("1.0", "end").split()) > 2 else ""))])
+                          lambda: self.copy_text(last["short"] or
+                                                 out.get("1.0", "end").strip()))])
 
     def page_fun(self, p):
         c = self.card(p, "🎲 " + self.t("Fun APIs"))
@@ -3722,33 +6663,1396 @@ class ToolboxApp(ctk.CTk):
 
     def page_ai(self, p):
         c = self.card(p, "🤖 " + self.t("AI Assistant"))
-        ctk.CTkLabel(c, text="يعمل مع OpenAI أو أي endpoint متوافق (تُضبط المفاتيح في الإعدادات)",
+        ctk.CTkLabel(c, text=self.t("OpenAI-compatible endpoint; keys in Settings") +
+                     "  (OpenAI, Ollama, LM Studio, …)",
                      text_color=CC("muted")).pack(anchor="e" if self.rtl else "w", padx=14)
         model = self.field(c, "model", "gpt-4o-mini", 240)
+        sysprompt = self.field(c, "system (optional)", "", 440)
         prompt = self.textbox(c, 140, "اشرح لي فكرة الـ threading باختصار.")
         out = self.textbox(c, 300)
         st = self.statuslabel(c)
+        history: List[Dict[str, str]] = []       # محادثة متعددة الأدوار
 
         def ask() -> str:
             key = self._key("openai")
             if not key:
                 return ("⚠ API key required.\n\n" + self.t("Settings") +
-                        " → API Keys → openai\n"
-                        "يمكن أيضًا ضبط openai_base لأي خادم متوافق (Ollama, LM Studio, …)")
+                        " → API Keys → openai")
             base = self._key("openai_base") or "https://api.openai.com/v1"
+            q = prompt.get("1.0", "end").strip()
+            if not q:
+                raise ValueError("empty prompt")
+            msgs: List[Dict[str, str]] = []
+            if sysprompt.get().strip():
+                msgs.append({"role": "system", "content": sysprompt.get().strip()})
+            msgs += history[-12:]                # آخر 6 أدوار كسياق
+            msgs.append({"role": "user", "content": q})
             d = http_post_json(
                 base.rstrip("/") + "/chat/completions",
-                {"model": model.get().strip(),
-                 "messages": [{"role": "user", "content": prompt.get("1.0", "end").strip()}],
-                 "temperature": 0.7},
+                {"model": model.get().strip(), "messages": msgs, "temperature": 0.7},
                 {"Authorization": f"Bearer {key}"})
             if "error" in d:
                 raise RuntimeError(d["error"].get("message", "api error"))
-            return d["choices"][0]["message"]["content"]
+            ans = d["choices"][0]["message"]["content"]
+            history.append({"role": "user", "content": q})
+            history.append({"role": "assistant", "content": ans})
+            prompt.delete("1.0", "end")          # جاهز للسؤال التالي
+            return ans + f"\n\n{'─' * 30}\n[{len(history) // 2} turn(s) in memory]"
+
+        def new_chat():
+            history.clear()
+            self.set_box(out, "✓ " + self.t("New chat"))
 
         self.buttons(c, [("🤖 " + self.t("Run"),
                           lambda: self.run_async(ask, lambda r_: self.set_box(out, r_), st)),
+                         ("🧹 " + self.t("New chat"), new_chat),
                          (self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
+
+    # ═════════════════════════════════════════════════════
+    # 【17.5】 Local LLM — تشغيل نماذج GGUF محليًا (llama.cpp) — v4.1
+    # ═════════════════════════════════════════════════════
+    def page_llm(self, p):
+        llama_mod = _get_llama_cpp()          # استيراد كسول — اختياري تمامًا
+        side = "right" if self.rtl else "left"
+        anch = "e" if self.rtl else "w"
+
+        def _i(s, d: int) -> int:
+            try:
+                return int(float(str(s).strip()))
+            except Exception:
+                return d
+
+        def _f(s, d: float) -> float:
+            try:
+                return float(str(s).strip())
+            except Exception:
+                return d
+
+        # ── بطاقة 1: اختيار الملف + معلومات الموديل (تعمل بلا llama-cpp-python)
+        c1 = self.card(p, "🦙 " + self.t("Local LLM"))
+        ctk.CTkLabel(c1, text=self.t("Run GGUF models locally — 100% offline"),
+                     text_color=CC("muted")).pack(anchor=anch, padx=14)
+        # ── v4.3: اختيار المحرّك الخلفي — داخلي أو خادم llama.cpp (بلا مترجم)
+        BK_LOCAL = self.t("In-process (llama-cpp-python)")
+        BK_SERVER = self.t("llama.cpp Server (running)")
+        BK_AUTO = self.t("llama.cpp Server (auto-start)")
+        BK_INV = {BK_LOCAL: "local", BK_SERVER: "server", BK_AUTO: "auto"}
+        _pr_saved = self.settings.get("llm_params") or {}
+        bk_row = self.row(c1)
+        ctk.CTkLabel(bk_row, text=self.t("Backend"), width=150,
+                     anchor=anch).pack(side=side)
+        bk = ctk.CTkOptionMenu(bk_row, width=340,
+                               values=[BK_LOCAL, BK_SERVER, BK_AUTO])
+        bk.set({"local": BK_LOCAL, "server": BK_SERVER,
+                "auto": BK_AUTO}.get(_pr_saved.get("backend", "local"),
+                                     BK_LOCAL))
+        bk.pack(side=side, padx=8)
+
+        if llama_mod is None:
+            # ✦ v4.3: لوحة مساعدة التثبيت — تشرح خيارات الحل بالتفصيل (قابلة للنسخ)
+            hb = ctk.CTkTextbox(c1, height=180,
+                                font=ctk.CTkFont(family="Courier", size=12))
+            hb.pack(fill="x", padx=12, pady=(6, 2))
+            hb.insert("1.0", _LLM_INSTALL_HELP)
+            hb.configure(state="disabled")
+            hw = self.row(c1)
+            ctk.CTkLabel(hw, text="⚠ llama-cpp-python "
+                         + self.t("Not installed"),
+                         text_color=CC("warn")).pack(side=side, padx=8)
+            ctk.CTkButton(hw, width=160, text="📋 " + self.t("Install help"),
+                          command=lambda: (self.copy_text(_LLM_INSTALL_HELP),
+                                           self.toast(self.t("Install help copied"),
+                                                      "ok"))).pack(side=side,
+                                                                   padx=4)
+
+        ur = self.row(c1)
+        ctk.CTkLabel(ur, text=self.t("Server URL"), width=150,
+                     anchor=anch).pack(side=side)
+        eurl = ctk.CTkEntry(ur, width=340,
+                            placeholder_text="http://127.0.0.1:8080")
+        eurl.insert(0, str(_pr_saved.get("url", "") or ""))
+        eurl.pack(side=side, padx=8)
+
+        xr = self.row(c1)
+        ctk.CTkLabel(xr, text=self.t("llama-server executable"), width=150,
+                     anchor=anch).pack(side=side)
+        eexe = ctk.CTkEntry(xr, width=260,
+                            placeholder_text="llama-server.exe")
+        eexe.insert(0, str(_pr_saved.get("exe", "") or ""))
+        eexe.pack(side=side, padx=(8, 0))
+
+        def browse_exe():
+            fp = filedialog.askopenfilename(
+                title="llama-server",
+                filetypes=[("llama-server", "llama-server*"),
+                           ("Executable", "*.exe"), ("All files", "*.*")])
+            if fp:
+                eexe.delete(0, "end")
+                eexe.insert(0, fp)
+
+        ctk.CTkButton(xr, text="📁 " + self.t("Browse"), width=120,
+                      command=browse_exe).pack(side=side, padx=4)
+
+        # ✦ v4.4: خيار التنزيل التلقائي — llama-server من GitHub بضغطة واحدة
+        bld_row = self.row(c1)
+        ctk.CTkLabel(bld_row, text=self.t("Build"), width=150,
+                     anchor=anch).pack(side=side)
+        BLD_INV = {self.t("Auto (recommended)"): "auto",
+                   self.t("CPU build"): "cpu",
+                   self.t("CUDA build (NVIDIA)"): "cuda",
+                   self.t("Vulkan build"): "vulkan"}
+        obld = ctk.CTkOptionMenu(bld_row, width=180,
+                                 values=list(BLD_INV.keys()))
+        obld.set(self.t("Auto (recommended)"))
+        obld.pack(side=side, padx=8)
+        b_srv = ctk.CTkButton(bld_row, width=180,
+                              text="⬇ " + self.t("Download llama-server"))
+        b_srv.pack(side=side, padx=4)
+
+        dl_state: Dict[str, Any] = {"busy": False, "stop": None}
+        dstat = self.statuslabel(c1)            # تقدّم التنزيل المشترك + الإلغاء
+
+        def _dl_progress(done_b: float, total_b: float, speed: float):
+            def upd():
+                try:
+                    if total_b > 0:
+                        txt = (f"⬇ {done_b / total_b * 100:5.1f}% · "
+                               f"{human_size(done_b)} / {human_size(total_b)}"
+                               f" · {human_size(speed)}/s")
+                    else:
+                        txt = f"⬇ {human_size(done_b)} · {human_size(speed)}/s"
+                    dstat.configure(text=txt, text_color=CC("primary"))
+                except Exception:
+                    pass
+            self._ui(upd)
+
+        def _dl_phase(name: str):
+            msgs = {"info": self.t("Fetching release info…"),
+                    "download": self.t("Starting download…"),
+                    "extract": self.t("Extracting…")}
+            msg = msgs.get(name, name)
+            self._ui(lambda m=msg: dstat.configure(
+                text="⏳ " + m, text_color=CC("warn")))
+
+        def work_srv(build: str, stop: threading.Event):
+            try:
+                res = _llm_fetch_release(build, _dl_progress, stop, _dl_phase)
+                return ("ok", res) if res else ("cancel",)
+            except Exception as e:
+                return ("error", f"{type(e).__name__}: {e}")
+
+        def done_srv(res):
+            b_srv.configure(text="⬇ " + self.t("Download llama-server"),
+                            state="normal")
+            for _b in (b_mdl, b_mdl_lg, b_mdl_unc):
+                _b.configure(state="normal")
+            dl_state["busy"] = False
+            dl_state["stop"] = None
+            if res[0] == "ok":
+                exe, ver = res[1]
+                eexe.delete(0, "end")
+                eexe.insert(0, exe)
+                _save_llm_params(BK_INV.get(bk.get(), "local"), exe=exe)
+                dstat.configure(
+                    text="✓ " + self.t("Download complete") + f" ({ver}) — "
+                         + self.t("Saved to") + f": {exe}", text_color=CC("ok"))
+                self.toast("✓ llama-server " + ver, "ok")
+            elif res[0] == "cancel":
+                dstat.configure(text="⏹ " + self.t("Canceled"),
+                                text_color=CC("muted"))
+            else:
+                dstat.configure(
+                    text="✗ " + self.t("Download failed") + f": {res[1]}",
+                    text_color=CC("err"))
+
+        def start_srv_dl():
+            if dl_state["busy"]:                # الضغط أثناء التنزيل = إلغاء
+                if dl_state["stop"] is not None:
+                    dl_state["stop"].set()
+                return
+            build = BLD_INV.get(obld.get(), "auto")
+            stop = threading.Event()
+            dl_state["busy"] = True
+            dl_state["stop"] = stop
+            b_srv.configure(text="⏹ " + self.t("Cancel"))
+            for _b in (b_mdl, b_mdl_lg, b_mdl_unc):
+                _b.configure(state="disabled")
+            dstat.configure(text="⏳ " + self.t("Starting download…"),
+                            text_color=CC("warn"))
+            self.run_async(lambda: work_srv(build, stop), done_srv, None, None)
+
+        b_srv.configure(command=start_srv_dl)
+
+        ptr = self.row(c1)
+        ctk.CTkLabel(ptr, text=self.t("Port"), width=150,
+                     anchor=anch).pack(side=side)
+        eport = ctk.CTkEntry(ptr, width=120)
+        eport.insert(0, str(_pr_saved.get("port", "8765")))
+        eport.pack(side=side, padx=8)
+
+        r1 = self.row(c1)
+        ep = ctk.CTkEntry(r1, width=470, placeholder_text=self.t("GGUF model file"))
+        ep.pack(side=side, padx=(8, 0))
+
+        # ✦ v4.4/v4.5: تنزيل موديل GGUF جاهز من Hugging Face — قائمتان صغيرة/كبيرة
+        MODEL_LABELS = {f"{m['name']} · {m['size']}": m for m in _LLM_MODELS}
+        SMALL_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
+                        if m.get("tier") == "small"]
+        LARGE_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
+                        if m.get("tier") == "large"]
+        mdr = self.row(c1)
+        ctk.CTkLabel(mdr, text=self.t("Download model"), width=150,
+                     anchor=anch).pack(side=side)
+        omdl = ctk.CTkOptionMenu(mdr, width=330,
+                                 values=SMALL_LABELS or ["-"])
+        omdl.set((SMALL_LABELS or ["-"])[0])
+        omdl.pack(side=side, padx=8)
+        b_mdl = ctk.CTkButton(mdr, width=110, text="⬇ " + self.t("Model"))
+        b_mdl.pack(side=side, padx=4)
+
+        # ✦ v4.5: الموديلات الكبيرة (7B حتى 70B) في قائمة مستقلة
+        mlr = self.row(c1)
+        ctk.CTkLabel(mlr, text=self.t("Download large model"), width=150,
+                     anchor=anch).pack(side=side)
+        omdl_lg = ctk.CTkOptionMenu(mlr, width=330,
+                                    values=LARGE_LABELS or ["-"])
+        omdl_lg.set((LARGE_LABELS or ["-"])[0])
+        omdl_lg.pack(side=side, padx=8)
+        b_mdl_lg = ctk.CTkButton(mlr, width=110, text="⬇ " + self.t("Model"))
+        b_mdl_lg.pack(side=side, padx=4)
+
+        # ✦ v4.7: الموديلات غير المحجوبة (Dolphin/Abliterated/Lexi/Stheno) — قائمة مستقلة
+        UN_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
+                     if m.get("tier") == "unc"]
+        unr = self.row(c1)
+        ctk.CTkLabel(unr, text=self.t("Download uncensored model"), width=150,
+                     anchor=anch).pack(side=side)
+        omdl_un = ctk.CTkOptionMenu(unr, width=330,
+                                    values=UN_LABELS or ["-"])
+        omdl_un.set((UN_LABELS or ["-"])[0])
+        omdl_un.pack(side=side, padx=8)
+        b_mdl_unc = ctk.CTkButton(unr, width=110, text="⬇ " + self.t("Model"))
+        b_mdl_unc.pack(side=side, padx=4)
+        uncnote = self.statuslabel(c1)
+        uncnote.configure(
+            text="ℹ " + self.t(
+                "Uncensored models are community fine-tunes (Dolphin · "
+                "Abliterated · Lexi · Stheno) with refusal behavior removed "
+                "— use responsibly and per your local laws."),
+            text_color=CC("muted"), justify="left",
+            anchor=anch, wraplength=560)
+        uncnote.pack(anchor=anch, padx=14, pady=(2, 6), fill="x")
+
+        def work_mdl(mdl: Dict[str, str], stop: threading.Event):
+            try:
+                dest = os.path.join(_llm_dl_dir("models"),
+                                    os.path.basename(mdl["url"].split("?")[0]))
+                fp = _llm_download(mdl["url"], dest, _dl_progress, stop)
+                return ("ok", fp) if fp else ("cancel",)
+            except Exception as e:
+                return ("error", f"{type(e).__name__}: {e}")
+
+        def done_mdl(res):
+            for _b in (b_mdl, b_mdl_lg, b_mdl_unc):
+                _b.configure(text="⬇ " + self.t("Model"), state="normal")
+            b_srv.configure(state="normal")
+            dl_state["busy"] = False
+            dl_state["stop"] = None
+            if res[0] == "ok":
+                fp = res[1]
+                ep.delete(0, "end")
+                ep.insert(0, fp)
+                _remember_model(fp)
+                refresh_info(fp)
+                _save_llm_params(BK_INV.get(bk.get(), "local"), path=fp)
+                dstat.configure(
+                    text="✓ " + self.t("Model downloaded") + " — "
+                         + self.t("Saved to") + f": {fp}", text_color=CC("ok"))
+                self.toast("✓ " + os.path.basename(fp), "ok")
+            elif res[0] == "cancel":
+                dstat.configure(text="⏹ " + self.t("Canceled"),
+                                text_color=CC("muted"))
+            else:
+                dstat.configure(
+                    text="✗ " + self.t("Download failed") + f": {res[1]}",
+                    text_color=CC("err"))
+
+        def start_mdl_dl(menu, btn):
+            if dl_state["busy"]:                # الضغط أثناء التنزيل = إلغاء
+                if dl_state["stop"] is not None:
+                    dl_state["stop"].set()
+                return
+            mdl = MODEL_LABELS.get(menu.get())
+            if not mdl:
+                return
+            stop = threading.Event()
+            dl_state["busy"] = True
+            dl_state["stop"] = stop
+            for _b in (b_mdl, b_mdl_lg, b_mdl_unc):
+                _b.configure(state="disabled")
+            btn.configure(text="⏹ " + self.t("Cancel"))
+            b_srv.configure(state="disabled")
+            dstat.configure(text="⏳ " + self.t("Starting download…"),
+                            text_color=CC("warn"))
+            self.run_async(lambda: work_mdl(mdl, stop), done_mdl, None, None)
+
+        b_mdl.configure(command=lambda: start_mdl_dl(omdl, b_mdl))
+        b_mdl_lg.configure(command=lambda: start_mdl_dl(omdl_lg, b_mdl_lg))
+        b_mdl_unc.configure(command=lambda: start_mdl_dl(omdl_un, b_mdl_unc))
+
+        # ✦ v4.6: حالة وضع الرام المنخفضة — تُقرأ في refresh_info قبل بناء بطاقة الضبط
+        lr_state = {"lowram": str(_pr_saved.get("lowram", "0")) in
+                    ("1", "true", "True", "1.0"),
+                    "kv": str(_pr_saved.get("kv", "Auto") or "Auto")}
+        info = ctk.CTkLabel(c1, text="", justify="left", anchor=anch,
+                            font=ctk.CTkFont(family="Courier", size=12))
+        info.pack(anchor=anch, padx=14, pady=(6, 10), fill="x")
+        ramhint = ctk.CTkLabel(c1, text="", justify="left", anchor=anch,
+                               text_color=CC("warn"))
+        ramhint.pack(anchor=anch, padx=14, fill="x")
+
+        def refresh_info(fp: str):
+            """معلومات من رأس GGUF — بلا تحميل للموديل وبلا اعتمادات.
+
+            ✦ v4.6: يضيف كشف MoE (فحص الموترات المخزَّن مؤقتًا) وسطر تقدير
+            الرام حسب وضع Low RAM وسطر اقتراح تلقائي للموديلات الضخمة.
+            """
+            try:
+                if not fp or not os.path.isfile(fp):
+                    info.configure(text="✗ " + self.t("No model selected"))
+                    ramhint.configure(text="")
+                    return
+                sz = os.path.getsize(fp)
+                md = gguf_metadata(fp)
+                md.update(_gguf_tensor_scan(fp))
+                kv_eff = {"Auto": ("q8_0" if lr_state["lowram"] else "f16")}.get(
+                    lr_state["kv"], lr_state["kv"])
+                est = _llm_estimate_ram(md, sz, lowram=lr_state["lowram"],
+                                        kv_q=kv_eff)
+                lines = [f"• {os.path.basename(fp)}  —  {human_size(sz)}"]
+                if md.get("name"):
+                    nm = md["name"] + (f"  ({md['size_label']})" if md.get("size_label") else "")
+                    lines.append("• " + self.t("Model") + ": " + nm)
+                if md.get("arch"):
+                    a = md["arch"]
+                    if md.get("layers"):
+                        a += f" · {md['layers']} " + self.t("Layers")
+                    if md.get("embed"):
+                        a += f" · d={md['embed']}"
+                    lines.append("• " + self.t("Architecture") + ": " + a)
+                if md.get("quant"):
+                    lines.append("• " + self.t("Quantization") + ": " + md["quant"])
+                if md.get("ctx"):
+                    lines.append("• " + self.t("Context length") + f": {md['ctx']:,}")
+                if md.get("vocab"):
+                    lines.append("• " + self.t("Vocabulary") + f": {md['vocab']:,}")
+                if est["moe"]:
+                    lines.append("• MoE: " + f"{est['experts']} "
+                                 + self.t("experts") + f" · "
+                                 + (str(est['experts_used']) if est['experts_used']
+                                    else "?") + " " + self.t("active/token"))
+                if est["moe"] and lr_state["lowram"]:
+                    lines.append("• " + self.t("Estimated RAM")
+                                 + f": ≈ {human_size(est['resident'])} (+ctx)")
+                    lines.append("  ↳ " + self.t(
+                        "Low-RAM: experts stream from SSD · native accuracy")
+                        + f" · ≈{est['tok_lo']}-{est['tok_hi']} tok/s")
+                elif est["moe"]:
+                    lines.append("• " + self.t("Estimated RAM")
+                                 + f": ≈ {human_size(est['full'])} (+ctx)")
+                    lines.append(f"  ↳ 🪶 " + self.t("Low RAM (<8 GB)")
+                                 + f" → ≈ {human_size(est['resident'])}")
+                elif lr_state["lowram"]:
+                    lines.append("• " + self.t("Estimated RAM")
+                                 + f": ≈ {human_size(est['full'])} (+ctx)")
+                    lines.append("  ↳ " + self.t(
+                        "Low-RAM: model streams from SSD · low RAM, slower")
+                        + f" · ≈{est['tok_lo']}-{est['tok_hi']} tok/s")
+                else:
+                    lines.append("• " + self.t("Estimated RAM")
+                                 + f": ≈ {human_size(est['full'])} (+ctx)")
+                info.configure(text="\n".join(lines))
+                # 💡 اقتراح تلقائي للموديلات الضخمة/MoE
+                if (est["moe"] or sz > 6 * (1 << 30)) and not lr_state["lowram"]:
+                    ramhint.configure(text="💡 " + self.t(
+                        "Suggested: enable Low RAM for this model"))
+                else:
+                    ramhint.configure(text="")
+            except Exception as e:
+                info.configure(text=f"✗ {e}")
+
+        def browse():
+            fp = filedialog.askopenfilename(
+                title=self.t("GGUF model file"),
+                filetypes=[("GGUF model", "*.gguf"), ("All files", "*.*")])
+            if fp:
+                ep.delete(0, "end")
+                ep.insert(0, fp)
+                refresh_info(fp)
+
+        ctk.CTkButton(r1, text="📁 " + self.t("Browse"), width=120,
+                      command=browse).pack(side=side, padx=4)
+
+        # أحدث الموديلات (من الإعدادات، مع حذف المسارات غير الموجودة)
+        rec = [x for x in self.settings.get("llm_recent", []) if os.path.isfile(x)]
+        rec_menu = None
+        if rec:
+            rr = self.row(c1)
+            ctk.CTkLabel(rr, text=self.t("Recent models"), width=150,
+                         anchor=anch).pack(side=side)
+            rec_menu = ctk.CTkOptionMenu(rr, width=400,
+                                         values=[os.path.basename(x) for x in rec])
+
+            def pick_recent(name: str):
+                for x in rec:
+                    if os.path.basename(x) == name:
+                        ep.delete(0, "end")
+                        ep.insert(0, x)
+                        refresh_info(x)
+                        break
+            rec_menu.configure(command=pick_recent)
+            rec_menu.pack(side=side, padx=8)
+
+        lastp = (self.settings.get("llm_params") or {}).get("path", "")
+        if lastp and os.path.isfile(lastp):
+            ep.insert(0, lastp)
+            refresh_info(lastp)
+
+        # ── بطاقة 2: الضبط + التحميل/الإخراج
+        c2 = self.card(p, "⚙️ " + self.t("Configuration"))
+        pr = {**{"n_ctx": "4096", "gpu": "0", "threads": str(os.cpu_count() or 4),
+                 "temp": "0.7", "topp": "0.9", "maxtok": "512", "rp": "1.1",
+                 "sys": ""},
+              **(self.settings.get("llm_params") or {})}
+
+        gf = ctk.CTkFrame(c2, fg_color="transparent")
+        gf.pack(fill="x", padx=8, pady=(4, 2))
+
+        def gmenu(row, col, label, values, val, w=120):
+            ctk.CTkLabel(gf, text=label).grid(row=row, column=col * 2,
+                                              sticky="w", padx=(12, 4), pady=3)
+            m = ctk.CTkOptionMenu(gf, values=values, width=w)
+            m.set(str(val))
+            m.grid(row=row, column=col * 2 + 1, sticky="w", padx=4, pady=3)
+            return m
+
+        def gfield(row, col, label, val, w=110):
+            ctk.CTkLabel(gf, text=label).grid(row=row, column=col * 2,
+                                              sticky="w", padx=(12, 4), pady=3)
+            e = ctk.CTkEntry(gf, width=w)
+            e.insert(0, str(val))
+            e.grid(row=row, column=col * 2 + 1, sticky="w", padx=4, pady=3)
+            return e
+
+        octx = gmenu(0, 0, self.t("Context size"),
+                     ["512", "1024", "2048", "4096", "8192", "16384", "32768"],
+                     pr.get("n_ctx", "4096"))
+        ogpu = gmenu(0, 1, self.t("GPU layers (0=CPU, -1=all)"),
+                     ["0", "8", "16", "24", "32", "48", "-1"],
+                     pr.get("gpu", "0"), 90)
+        fthr = gfield(0, 2, self.t("Threads"),
+                      pr.get("threads", str(os.cpu_count() or 4)), 70)
+        ftmp = gfield(1, 0, self.t("Temperature"), pr.get("temp", "0.7"))
+        ftop = gfield(1, 1, self.t("Top P"), pr.get("topp", "0.9"))
+        ftok = gfield(1, 2, self.t("Max tokens"), pr.get("maxtok", "512"))
+        frp = gfield(2, 0, self.t("Repeat penalty"), pr.get("rp", "1.1"))
+        # ✦ v4.6: تكميم ذاكرة KV + وضع الرام المنخفضة — صف ثالث في الشبكة
+        okv = gmenu(2, 1, self.t("KV cache"),
+                    ["Auto", "f16", "q8_0", "q4_0"],
+                    pr.get("kv", "Auto"), 90)
+        sw_low = ctk.CTkSwitch(gf, text="🪶 " + self.t("Low RAM (<8 GB)"),
+                               onvalue="1", offvalue="0")
+        if lr_state["lowram"]:
+            sw_low.select()
+        sw_low.grid(row=2, column=4, sticky="w", padx=(12, 4), pady=3)
+
+        # ✦ v4.6: موديل مسودة — فك تشفير تخميني: تسريع بلا أي تغيير في الدقة
+        dfr = self.row(c2)
+        sw_draft = ctk.CTkSwitch(dfr, text="⚡ " + self.t("Draft model"),
+                                 onvalue="1", offvalue="0")
+        if str(pr.get("draft_on", "0")) in ("1", "true", "True", "1.0"):
+            sw_draft.select()
+        sw_draft.pack(side=side, padx=8)
+        edraft = ctk.CTkEntry(dfr, width=210,
+                              placeholder_text=self.t("Draft model (.gguf)"))
+        edraft.insert(0, str(pr.get("draft", "") or ""))
+        edraft.pack(side=side, padx=4)
+
+        def browse_draft():
+            fp2 = filedialog.askopenfilename(
+                title="Draft GGUF",
+                filetypes=[("GGUF model", "*.gguf"), ("All files", "*.*")])
+            if fp2:
+                edraft.delete(0, "end")
+                edraft.insert(0, fp2)
+
+        ctk.CTkButton(dfr, text="📁 " + self.t("Browse"), width=90,
+                      command=browse_draft).pack(side=side, padx=4)
+        ctk.CTkLabel(c2, text="⚡ " + self.t(
+                         "Speed: verifies draft batches — same accuracy"),
+                     text_color=CC("muted"), anchor=anch).pack(fill="x",
+                                                               padx=14)
+
+        ctk.CTkLabel(c2, text=self.t("System prompt"),
+                     anchor=anch).pack(fill="x", padx=14, pady=(6, 0))
+        fsys = self.textbox(c2, 56, pr.get("sys", ""))
+        st2 = self.statuslabel(c2)
+
+        def _save_llm_params(bk: str, **extra):
+            """حفظ ضبط LLM — من الخيط الرئيسي فقط (يقرأ الواجهة)."""
+            pr2 = {**(self.settings.get("llm_params") or {})}
+            pr2.update({"n_ctx": octx.get(), "gpu": ogpu.get(),
+                        "threads": fthr.get(), "temp": ftmp.get(),
+                        "topp": ftop.get(), "maxtok": ftok.get(),
+                        "rp": frp.get(), "sys": fsys.get("1.0", "end").strip(),
+                        "backend": bk,
+                        "think": str(sw_think.get()),
+                        "lowram": str(sw_low.get()),
+                        "kv": okv.get(),
+                        "draft_on": str(sw_draft.get()),
+                        "draft": edraft.get().strip()})
+            pr2.update(extra)
+            self.settings["llm_params"] = pr2
+            self.save_settings()
+
+        def _remember_model(fp: str):
+            rec2 = [x for x in self.settings.get("llm_recent", []) if x != fp]
+            rec2.insert(0, fp)
+            self.settings["llm_recent"] = rec2[:6]
+            self.save_settings()
+            try:
+                if rec_menu is not None and rec_menu.winfo_exists():
+                    rec_menu.configure(
+                        values=[os.path.basename(x) for x in rec2[:6]])
+            except Exception:
+                pass
+
+        def _lr_changed(*_a):
+            """✦ v4.6: تغيّر Low RAM/KV — حفظ + تحديث سطر التقدير فورًا."""
+            lr_state["lowram"] = str(sw_low.get()) == "1"
+            lr_state["kv"] = okv.get()
+            _save_llm_params(BK_INV.get(bk.get(), "local"))
+            fp2 = ep.get().strip()
+            if fp2 and os.path.isfile(fp2):
+                refresh_info(fp2)
+
+        sw_low.configure(command=_lr_changed)
+        okv.configure(command=_lr_changed)
+        sw_draft.configure(command=lambda: _save_llm_params(
+            BK_INV.get(bk.get(), "local")))
+
+        def _wait_health(u: str):
+            ok, why = _llm_server_ready(u, timeout=3.0)
+            if not ok:
+                raise RuntimeError(f"{self.t('Server not responding')} ({why})")
+            return u
+
+        def _auto_start(xe: str, md: str, ctx: int, gpu: int, thr: int,
+                        port: int, extra: Optional[List[str]] = None):
+            old = self._llm.get("proc")                 # إيقاف خادم سابق إن وُجد
+            if old is not None and old.poll() is None:
+                try:
+                    old.terminate()
+                except Exception:
+                    pass
+            try:
+                return _llm_start_server(xe, md, ctx, gpu, thr, port,
+                                         extra=extra)
+            except Exception as e:
+                raise RuntimeError(
+                    self.t("Failed to start llama-server") + f": {e}") from e
+
+        def on_server_ready(u: str):
+            self._llm["backend"] = "server"
+            self._llm["url"] = u
+            self._llm["model"] = None
+            _save_llm_params("server", url=u)
+            fp = ep.get().strip()
+            if fp and os.path.isfile(fp):
+                _remember_model(fp)
+            try:
+                st2.configure(text="✓ " + self.t("Server ready") + f": {u}",
+                              text_color=CC("ok"))
+            except Exception:
+                pass
+
+        def on_auto_ready(val):
+            proc, url = val
+            self._llm["backend"] = "server"
+            self._llm["url"] = url
+            self._llm["proc"] = proc
+            self._llm["model"] = None
+            fp = ep.get().strip()
+            _save_llm_params("server", url=url, exe=eexe.get().strip(),
+                                  port=eport.get().strip(), path=fp)
+            if fp and os.path.isfile(fp):
+                _remember_model(fp)
+                refresh_info(fp)
+            try:
+                st2.configure(text="✓ " + self.t("Server ready") + f": {url}",
+                              text_color=CC("ok"))
+            except Exception:
+                pass
+
+        def start_load():
+            # ✦ v4.1/v4.3: كل قراءات الواجهة هنا في الخيط الرئيسي — الخيط العامل بلا Tcl
+            if self._llm["busy"]:
+                return
+            bk_key = BK_INV.get(bk.get(), "local")
+            if bk_key == "server":                      # خادم يعمل أصلًا
+                u = eurl.get().strip() or "http://127.0.0.1:8080"
+                self.run_async(lambda: _wait_health(u), on_server_ready, st2,
+                               self.t("Connecting…"))
+                return
+            fp = ep.get().strip()
+            if not fp or not os.path.isfile(fp):
+                try:
+                    st2.configure(text="✗ " + self.t("No model selected"),
+                                  text_color=CC("err"))
+                except Exception:
+                    pass
+                return
+            ctx = max(256, _i(octx.get(), 4096))
+            gpu = _i(ogpu.get(), 0)
+            thr = max(1, _i(fthr.get(), os.cpu_count() or 4))
+            if bk_key == "auto":                        # تشغيل llama-server تلقائيًا
+                xe = eexe.get().strip()
+                if not xe or not os.path.isfile(xe):
+                    try:
+                        st2.configure(text="✗ " + self.t("llama-server executable")
+                                      + " — ⬇ " + self.t("Download llama-server"),
+                                      text_color=CC("err"))
+                    except Exception:
+                        pass
+                    return
+                port = max(1024, _i(eport.get(), 8765))
+                # ✦ v4.6: تكوين وسائط الرام المنخفضة/المسودة في الخيط الرئيسي
+                low = str(sw_low.get()) == "1"
+                kv_sel = okv.get()
+                kv_eff = {"Auto": ("q8_0" if low else "f16")}.get(kv_sel,
+                                                                  kv_sel)
+                moef = False
+                try:
+                    moef = (_gguf_tensor_scan(fp).get("experts") or 0) > 0
+                except Exception:
+                    pass
+                draft = ""
+                if str(sw_draft.get()) == "1":
+                    dd = edraft.get().strip()
+                    if dd and os.path.isfile(dd):
+                        draft = dd
+                    else:
+                        self.toast("⚡ " + self.t(
+                            "Draft model not found — ignored"), "warn")
+                extra = _llm_lowram_flags(low, kv_eff, moef, draft)
+                self.run_async(
+                    lambda: _auto_start(xe, fp, ctx, gpu, thr, port, extra),
+                    on_auto_ready, st2, self.t("Connecting…"))
+                return
+            if llama_mod is None:                       # داخلي — يحتاج llama-cpp-python
+                try:
+                    st2.configure(text="✗ llama-cpp-python "
+                                  + self.t("Not installed"), text_color=CC("err"))
+                except Exception:
+                    pass
+                return
+            # ✦ v4.6: المسار الداخلي — mmap/دفعات صغيرة/تكميم KV بلا خادم
+            low = str(sw_low.get()) == "1"
+            kv_sel = okv.get()
+            kv_eff = {"Auto": ("q8_0" if low else "f16")}.get(kv_sel, kv_sel)
+            self.run_async(lambda: _load_worker(fp, ctx, gpu, thr, low, kv_eff),
+                           on_loaded, st2,
+                           self.t("First load can take a minute…"))
+
+        def _load_worker(fp, ctx, gpu, thr, low=False, kvq="f16"):
+            # بلا أي استدعاءات Tk هنا — القيم كلها وسيطات بايثون سادة
+            if self._llm["path"] == fp and self._llm["model"] is not None:
+                return fp                                   # محمّل مسبقًا
+            if self._llm["model"] is not None:              # تحرير القديم أولًا
+                self._llm["model"] = None
+                gc.collect()
+            # ✦ v4.6: وضع الرام المنخفضة للمسار الداخلي — mmap بلا تثبيت
+            # صفحات + دفعات صغيرة + تكميم KV. (exps=CPU والمسودة في محرّك
+            # الخادم فقط.) الإصدارات الأقدم تُسقط الوسائط تدريجيًا بلا انهيار.
+            kw: Dict[str, Any] = {}
+            if low:
+                kw.update(use_mlock=False, use_mmap=True,
+                          n_batch=128, n_ubatch=128)
+                if kvq == "q8_0":
+                    kw.update(type_k=8, type_v=8, flash_attn=True)
+                elif kvq == "q4_0":
+                    kw.update(type_k=2, type_v=2, flash_attn=True)
+            if kw:
+                m = None
+                drops = [(), ("flash_attn",),
+                         ("type_k", "type_v", "flash_attn"),
+                         ("n_ubatch", "type_k", "type_v", "flash_attn")]
+                for drop in drops:
+                    try:
+                        m = llama_mod.Llama(
+                            model_path=fp, n_ctx=ctx, n_gpu_layers=gpu,
+                            n_threads=thr, verbose=False,
+                            **{k: v for k, v in kw.items() if k not in drop})
+                        break
+                    except TypeError:
+                        m = None
+                if m is None:
+                    raise RuntimeError(
+                        "llama-cpp-python rejected Low-RAM load args")
+            else:
+                m = llama_mod.Llama(
+                    model_path=fp, n_ctx=ctx, n_gpu_layers=gpu,
+                    n_threads=thr, verbose=False)
+            self._llm["model"] = m
+            self._llm["path"] = fp
+            return fp
+
+        def on_loaded(fp):
+            if not fp:
+                return
+            self._llm["backend"] = "local"
+            self._llm["url"] = ""
+            _save_llm_params("local", path=fp)
+            _remember_model(fp)
+            note = ""
+            try:
+                # ✦ v4.6: llama-cpp-python لا يدعم exps=CPU — خادم أفضل لـ MoE
+                if str(sw_low.get()) == "1" and \
+                        (_gguf_tensor_scan(fp).get("experts") or 0) > 0:
+                    note = "  ·  ⓘ " + self.t(
+                        "Server backend recommended for MoE + Low RAM")
+            except Exception:
+                pass
+            try:
+                st2.configure(text="✓ " + self.t("Model ready")
+                              + f": {os.path.basename(fp)}" + note,
+                              text_color=CC("ok"))
+            except Exception:
+                pass
+            refresh_info(fp)
+
+        def do_unload():
+            had = (self._llm["model"] is not None
+                   or self._llm.get("backend") == "server")
+            self._llm["model"] = None
+            self._llm["path"] = ""
+            self._llm["url"] = ""
+            self._llm["backend"] = "local"
+            pr = self._llm.get("proc")     # ✦ v4.3: إيقاف الخادم المُشغَّل تلقائيًا
+            self._llm["proc"] = None
+            if pr is not None and pr.poll() is None:
+                try:
+                    pr.terminate()
+                except Exception:
+                    pass
+            gc.collect()
+            try:
+                st2.configure(text="⏏ " + (self.t("Model unloaded") if had
+                                           else self.t("No model selected")),
+                              text_color=CC("muted"))
+            except Exception:
+                pass
+
+        self.buttons(c2, [
+            ("⬇️ " + self.t("Load model"), start_load),
+            ("⏏️ " + self.t("Unload model"), do_unload)])
+
+        # ── بطاقة 3: المحادثة (بث حي عبر _ui الآمنة للخيوط)
+        c3 = self.card(p, "💬 " + self.t("Chat"))
+        # ✦ v4.5: مفتاح التفكير العميق — الإيقاف يخفي التفكير ويوقف توليده على الخادم
+        thkr = self.row(c3)
+        sw_think = ctk.CTkSwitch(thkr, text="🧠 " + self.t("Deep thinking"),
+                                 onvalue="1", offvalue="0")
+        if str(_pr_saved.get("think", "1")) in ("1", "true", "True", "1.0"):
+            sw_think.select()
+        sw_think.pack(side=side, padx=8)
+        sw_think.configure(command=lambda: _save_llm_params(
+            BK_INV.get(bk.get(), "local"), think=str(sw_think.get())))
+        trans = ctk.CTkTextbox(c3, height=300,
+                               font=ctk.CTkFont(family="Courier", size=13))
+        trans.pack(fill="both", expand=True, padx=12, pady=(8, 6))
+        trans.configure(state="disabled")
+        ctk.CTkLabel(c3, text=self.t("Your message"),
+                     anchor=anch).pack(fill="x", padx=14, pady=(0, 0))
+        inp = ctk.CTkTextbox(c3, height=64)
+        inp.pack(fill="x", padx=12, pady=(2, 4))
+        st3 = self.statuslabel(c3)
+
+        hist: List[Tuple[str, str]] = self._llm["hist"]
+
+        def _append(txt: str):
+            try:
+                trans.configure(state="normal")
+                trans.insert("end", txt)
+                trans.see("end")
+                trans.configure(state="disabled")
+            except Exception:
+                pass
+
+        def transcript_text() -> str:
+            out = []
+            for role, content in hist:
+                who = self.t("You") if role == "user" else self.t("Assistant")
+                out.append(f"🧑 {who}:\n{content}" if role == "user"
+                           else f"🦙 {who}:\n{content}")
+            return "\n\n".join(out)
+
+        if hist:                                            # إعادة عرض المحادثة بعد إعادة بناء الصفحة
+            _append(transcript_text())
+
+        def _start_turn(q: str):
+            _append(f"\n\n🧑 {self.t('You')}:\n{q}\n\n🦙 {self.t('Assistant')}:\n")
+
+        def _finish_turn(ntok: int, secs: float, stopped: bool,
+                         nhidden: int = 0):
+            tail = f"\n\n— {ntok} tok · {(ntok / secs) if secs else 0:.1f} tok/s"
+            if nhidden:
+                tail += " · 🙈 " + self.t("Thinking hidden") + f" ({nhidden})"
+            if stopped:
+                tail += " · ⏹ " + self.t("Stopped.")
+            _append(tail)
+
+        def work_send(q: str, sp: str, ptemp: str, ptop: str,
+                      pmaxtok: str, prp: str, pthink: bool = True):
+            """يعمل في خيط عامل — كل الوسائط قيم بايثون سادة، صفر استدعاءات Tcl."""
+            backend = self._llm.get("backend", "local")
+            url = self._llm.get("url", "")
+            m = self._llm["model"]
+            if backend == "server":
+                if not url:
+                    raise ValueError(self.t("Server not responding"))
+            elif m is None:
+                raise ValueError(self.t("No model selected"))
+            stop_ev = threading.Event()
+            self._llm["stop"] = stop_ev
+            self._llm["busy"] = True
+            try:
+                msgs: List[Dict[str, str]] = []
+                if sp:
+                    msgs.append({"role": "system", "content": sp})
+                msgs += [{"role": r, "content": c} for r, c in hist[-12:]]
+                msgs.append({"role": "user", "content": q})
+                self._ui(_start_turn, q)
+                t0 = time.time()
+                ntok = 0
+                pieces: List[str] = []      # النص المعروض
+                pending: List[str] = []     # دفعة البث للواجهة
+                answer: List[str] = []      # الجواب الصافي (بلا تفكير) للتاريخ
+                shown_reason = False
+                if backend == "server":
+                    # ✦ v4.3: بث من خادم llama.cpp عبر HTTP — بلا llama-cpp-python
+                    stream = _llm_http_stream(
+                        url, msgs,
+                        max_tokens=max(16, _i(pmaxtok, 512)),
+                        temperature=max(0.0, min(2.0, _f(ptemp, 0.7))),
+                        top_p=max(0.0, min(1.0, _f(ptop, 0.9))),
+                        repeat_penalty=max(1.0, _f(prp, 1.1)),
+                        disable_thinking=not pthink,     # ✦ v4.5: لا تولّد التفكير أصلًا
+                        stop_ev=stop_ev)
+                else:
+                    stream = m.create_chat_completion(
+                        messages=msgs,
+                        max_tokens=max(16, _i(pmaxtok, 512)),
+                        temperature=max(0.0, min(2.0, _f(ptemp, 0.7))),
+                        top_p=max(0.0, min(1.0, _f(ptop, 0.9))),
+                        repeat_penalty=max(1.0, _f(prp, 1.1)),
+                        stream=True)
+                # ✦ v4.5: إيقاف التفكير العميق = مرشّح بثّي + تجاهل reasoning_content
+                tf = None if pthink else _ThinkFilter()
+                for ch in stream:
+                    if stop_ev.is_set():
+                        break
+                    try:
+                        delta = ch["choices"][0].get("delta") or {}
+                        rc = delta.get("reasoning_content") or ""
+                        piece = delta.get("content") or ""
+                    except Exception:
+                        rc, piece = "", ""
+                    if not (piece or rc):
+                        continue
+                    ntok += 1                           # كل الرموز المولّدة (حتى المحجوبة)
+                    if pthink:                          # عرض التفكير مع تمييز بصري
+                        if rc:
+                            if not shown_reason:
+                                pieces.append("🧠 ")
+                                pending.append("🧠 ")
+                                shown_reason = True
+                            vis = rc
+                        else:
+                            if shown_reason:
+                                pieces.append("\n\n")
+                                pending.append("\n\n")
+                                shown_reason = False
+                            vis = piece
+                            answer.append(piece)        # الجواب فقط يدخل التاريخ
+                    else:
+                        if rc:                          # تفكير منفصل — يُحجب فورًا
+                            continue
+                        vis = tf.feed(piece) if piece else ""
+                        if vis:
+                            answer.append(vis)
+                    if vis:
+                        pieces.append(vis)
+                        pending.append(vis)
+                        if len(pending) >= 3:           # بثّ مُخفَّف يحفظ سلاسة الواجهة
+                            self._ui(_append, "".join(pending))
+                            pending.clear()
+                if tf is not None:                      # ما تبقّى من المرشّح
+                    tail_txt = tf.flush()
+                    if tail_txt:
+                        pieces.append(tail_txt)
+                        pending.append(tail_txt)
+                        answer.append(tail_txt)
+                if pending:
+                    self._ui(_append, "".join(pending))
+                secs = time.time() - t0
+                hist.append(("user", q))
+                hist.append(("assistant", "".join(answer)))
+                self._ui(_finish_turn, ntok, secs, stop_ev.is_set(),
+                         (tf.suppressed_chars if tf is not None else 0))
+            finally:
+                self._llm["busy"] = False
+                self._llm["stop"] = None
+
+        def do_send():
+            # ✦ v4.1: القراءات كلها في الخيط الرئيسي ثم تُمرَّر كقيم للخيط العامل
+            if self._llm["busy"]:
+                return
+            ready = (self._llm["model"] is not None
+                     or (self._llm.get("backend") == "server"
+                         and self._llm.get("url")))
+            if not ready:
+                try:
+                    st3.configure(text="✗ " + self.t("No model selected")
+                                  + " — " + self.t("Load model"),
+                                  text_color=CC("err"))
+                except Exception:
+                    pass
+                return
+            q = inp.get("1.0", "end").strip()
+            if not q:
+                return
+            sp = fsys.get("1.0", "end").strip()
+            ptemp, ptop = ftmp.get(), ftop.get()
+            pmaxtok, prp = ftok.get(), frp.get()
+            pthink = str(sw_think.get()) == "1"          # ✦ v4.5: التفكير العميق؟
+            inp.delete("1.0", "end")
+            self.run_async(
+                lambda: work_send(q, sp, ptemp, ptop, pmaxtok, prp, pthink),
+                None, st3, self.t("Generating…"))
+
+        def do_stop():
+            if self._llm.get("stop") is not None:
+                self._llm["stop"].set()
+
+        def new_chat():
+            hist.clear()
+            try:
+                trans.configure(state="normal")
+                trans.delete("1.0", "end")
+                trans.configure(state="disabled")
+            except Exception:
+                pass
+
+        def save_chat():
+            if not hist:
+                try:
+                    st3.configure(text="✗ " + self.t("Chat is empty"),
+                                  text_color=CC("warn"))
+                except Exception:
+                    pass
+                return
+            fp = filedialog.asksaveasfilename(
+                defaultextension=".md",
+                filetypes=[("Markdown", "*.md"), ("Text", "*.txt")])
+            if not fp:
+                return
+            with open(fp, "w", encoding="utf-8") as f:
+                f.write(transcript_text() + "\n")
+            self.toast(self.t("Chat saved to") + " " + fp, "ok")
+
+        self.buttons(c3, [
+            ("📨 " + self.t("Send"), do_send),
+            ("⏹ " + self.t("Stop"), do_stop),
+            ("🧹 " + self.t("New chat"), new_chat),
+            ("💾 " + self.t("Save chat"), save_chat),
+            ("📋 " + self.t("Copy"),
+             lambda: self.copy_text(transcript_text()))])
+
+    # ═════════════════════════════════════════════════════
+    # 【17.5】 v4.5: الخزائن المشفّرة (Vault) — PBKDF2 + Fernet/HMAC-CTR
+    # ═════════════════════════════════════════════════════
+    def page_vault(self, p):
+        side = "right" if self.rtl else "left"
+        anch = "e" if self.rtl else "w"
+        V = self._vault
+
+        def _touch(*_):
+            V["last_touch"] = time.time()
+
+        def vault_path(name: str) -> str:
+            return os.path.join(_vault_dir(), name + _VLT_EXT)
+
+        def vault_names() -> List[str]:
+            try:
+                return sorted(fn[:-len(_VLT_EXT)]
+                              for fn in os.listdir(_vault_dir())
+                              if fn.endswith(_VLT_EXT))
+            except Exception:
+                return []
+
+        def _copy_secret(txt: str):
+            """نسخ سرّي مع مسح تلقائي من الحافظة بعد 30 ثانية."""
+            _touch()
+            self.copy_text(txt)
+            self.toast("📋 " + self.t("copied (clears in 30s)"), "ok")
+
+            def _wipe():
+                try:
+                    if self.clipboard_get() == txt:
+                        self.clipboard_clear()
+                except Exception:
+                    pass
+            self.after(30000, _wipe)
+
+        def _save_vault():
+            """إعادة تشفير وكتابة ملف الخزنة (كتابة ذرّية عبر .tmp)."""
+            name = V.get("name")
+            if not name:
+                return
+            payload = json.dumps({"entries": V["entries"]},
+                                 ensure_ascii=False).encode("utf-8")
+            blob = vault_encrypt(payload, V["pw"])
+            fp = vault_path(name)
+            tmp = fp + ".tmp"
+            with open(tmp, "wb") as f:
+                f.write(blob)
+            os.replace(tmp, fp)
+
+        # ── بطاقة 1: فتح / إنشاء / قفل ─────────────────────
+        c1 = self.card(p, "🔐 " + self.t("Vault"))
+        ctk.CTkLabel(c1,
+                     text=self.t("Encrypted vault — master password + PBKDF2"),
+                     text_color=CC("muted")).pack(anchor=anch, padx=14)
+
+        vr = self.row(c1)
+        ctk.CTkLabel(vr, text=self.t("Vault file"), width=140,
+                     anchor=anch).pack(side=side)
+        ovlt = ctk.CTkOptionMenu(vr, width=250,
+                                 values=vault_names() or ["—"])
+        if V.get("name") in vault_names():
+            ovlt.set(V["name"])
+        ovlt.pack(side=side, padx=8)
+        b_del = ctk.CTkButton(vr, width=130, text="🗑 " + self.t("Delete vault"),
+                              fg_color=C("err"), hover_color=C("err"))
+
+        pr1 = self.row(c1)
+        ctk.CTkLabel(pr1, text=self.t("Master password"), width=140,
+                     anchor=anch).pack(side=side)
+        epw = ctk.CTkEntry(pr1, width=250, show="•",
+                           placeholder_text=self.t("Master password"))
+        epw.pack(side=side, padx=8)
+        epw.bind("<KeyRelease>", _touch)
+
+        def _toggle_show():
+            epw.configure(show="" if epw.cget("show") else "•")
+
+        ctk.CTkButton(pr1, width=44, text="👁",
+                      command=_toggle_show).pack(side=side, padx=2)
+        b_open = ctk.CTkButton(pr1, width=120, text="🔓 " + self.t("Unlock"))
+        b_open.pack(side=side, padx=2)
+
+        nr = self.row(c1)
+        ctk.CTkLabel(nr, text=self.t("Vault name"), width=140,
+                     anchor=anch).pack(side=side)
+        ename = ctk.CTkEntry(nr, width=250,
+                             placeholder_text="my-secrets-2026")
+        ename.pack(side=side, padx=8)
+        ename.bind("<KeyRelease>", _touch)
+        ctk.CTkButton(nr, width=150, text="➕ " + self.t("New vault"),
+                      command=lambda: do_new()).pack(side=side, padx=2)
+
+        # صف القفل/التغيير — يظهر فقط والخزنة مفتوحة (الصفحة تُبنى من جديد)
+        if V.get("unlocked"):
+            lr = self.row(c1)
+            ctk.CTkButton(lr, width=120, text="🔒 " + self.t("Lock"),
+                          command=lambda: do_lock()).pack(side=side, padx=2)
+            enp1 = ctk.CTkEntry(lr, width=170, show="•",
+                                placeholder_text=self.t("New password"))
+            enp2 = ctk.CTkEntry(lr, width=170, show="•",
+                                placeholder_text=self.t("Confirm password"))
+            enp1.pack(side=side, padx=2)
+            enp2.pack(side=side, padx=2)
+            enp1.bind("<KeyRelease>", _touch)
+            enp2.bind("<KeyRelease>", _touch)
+            ctk.CTkButton(lr, width=160, text="🗝 " + self.t("Change password"),
+                          command=lambda: do_chg()).pack(side=side, padx=2)
+            b_del.configure(command=lambda: do_del())
+            b_del.pack(side=side, padx=2)
+
+        st1 = self.statuslabel(c1)
+
+        def do_unlock():
+            _touch()
+            name = ovlt.get().strip()
+            if not name or name == "—":
+                return
+            fp = vault_path(name)
+            if not os.path.isfile(fp):
+                st1.configure(text="✗ " + self.t("Vault file") + f": {name}",
+                              text_color=CC("err"))
+                return
+            pw = epw.get()
+            try:
+                with open(fp, "rb") as f:
+                    blob = f.read()
+                data = json.loads(
+                    vault_decrypt(blob, pw).decode("utf-8"))
+                entries = data.get("entries") or []
+                if not isinstance(entries, list):
+                    raise ValueError("corrupted")
+            except ValueError as e:
+                wrong = "wrong master password" in str(e).lower()
+                st1.configure(text="✗ " + (self.t("Wrong master password")
+                                           if wrong
+                                           else self.t("Vault corrupted")),
+                              text_color=CC("err"))
+                return
+            except Exception:
+                st1.configure(text="✗ " + self.t("Vault corrupted"),
+                              text_color=CC("err"))
+                return
+            V.update({"name": name, "pw": pw, "entries": entries,
+                      "unlocked": True, "last_touch": time.time(),
+                      "edit_idx": None})
+            self.show_tool("vault")                 # إعادة رسم الصفحة مفتوحة
+
+        b_open.configure(command=do_unlock)
+
+        def do_new():
+            _touch()
+            name = re.sub(r"[^A-Za-z0-9_\-]", "_",
+                          ename.get().strip())[:40].strip("_-")
+            if not name:
+                self.toast("✗ " + self.t("Invalid vault name"), "warn")
+                return
+            if os.path.isfile(vault_path(name)):
+                self.toast("✗ " + self.t("Vault name exists"), "warn")
+                return
+            pw = epw.get()
+            if len(pw) < 4:
+                self.toast("⚠ " + self.t("Password too short (min 4)"), "warn")
+                return
+            V.update({"name": name, "pw": pw, "entries": [],
+                      "unlocked": True, "last_touch": time.time(),
+                      "edit_idx": None})
+            _save_vault()
+            self.toast("✓ " + self.t("Vault created"), "ok")
+            self.show_tool("vault")
+
+        def do_chg():
+            _touch()
+            p1, p2 = enp1.get(), enp2.get()
+            if p1 != p2:
+                st1.configure(text="✗ " + self.t("Master passwords do not match"),
+                              text_color=CC("err"))
+                return
+            if len(p1) < 4:
+                self.toast("⚠ " + self.t("Password too short (min 4)"), "warn")
+                return
+            V["pw"] = p1
+            _save_vault()
+            enp1.delete(0, "end")
+            enp2.delete(0, "end")
+            st1.configure(text="✓ " + self.t("Change password"),
+                          text_color=CC("ok"))
+            self.toast("✓ " + self.t("Change password"), "ok")
+
+        def do_lock():
+            _touch()
+            self._vault_lock_now()
+            self.show_tool("vault")
+
+        def do_del():
+            _touch()
+            name = V.get("name")
+            if not name or not V.get("unlocked"):
+                st1.configure(text="✗ " + self.t("Unlock") + f" — {name}",
+                              text_color=CC("warn"))
+                return
+            if not messagebox.askyesno(APP_NAME,
+                                       self.t("Delete vault") + f": {name}?"):
+                return
+            try:
+                os.remove(vault_path(name))
+            except Exception:
+                pass
+            self._vault_lock_now()
+            self.show_tool("vault")
+            self.toast("🗑 " + self.t("Vault deleted"), "ok")
+
+        # ── مقفولة: بطاقة إدخالات فارغة ثم انتهاء ──────────
+        if not V.get("unlocked"):
+            c2 = self.card(p, "🗝️ " + self.t("Entries"))
+            ctk.CTkLabel(c2, text="🔒 " + self.t("Unlock") + " / ➕ "
+                         + self.t("New vault"),
+                         text_color=CC("muted")).pack(pady=18)
+            return
+
+        # ── بطاقة 2: الإدخالات (مفتوحة) ────────────────────
+        c2 = self.card(p, "🗝️ " + self.t("Entries"))
+        cnt_lbl = ctk.CTkLabel(c2, text=f"({len(V['entries'])})",
+                               text_color=CC("muted"))
+        cnt_lbl.pack(anchor=anch, padx=14)
+        sr = self.row(c2)
+        esearch = ctk.CTkEntry(sr, width=300,
+                               placeholder_text=self.t("Search…"))
+        esearch.pack(side=side, padx=8)
+        listf = ctk.CTkScrollableFrame(c2, height=320)
+        listf.pack(fill="x", padx=10, pady=(0, 10))
+
+        def _del_entry(i: int, e: dict):
+            _touch()
+            if not messagebox.askyesno(APP_NAME,
+                                       self.t("Delete entry") + ": "
+                                       + (e.get("t") or "—") + "?"):
+                return
+            if 0 <= i < len(V["entries"]):
+                V["entries"].pop(i)
+                _save_vault()
+            render_entries(esearch.get().strip().lower())
+            self.toast("🗑 " + self.t("Delete entry"), "ok")
+
+        def render_entries(q: str = ""):
+            for w in listf.winfo_children():
+                w.destroy()
+            vis_n = 0
+            for i, e in enumerate(V["entries"]):
+                hay = json.dumps(e, ensure_ascii=False).lower()
+                if q and q not in hay:
+                    continue
+                vis_n += 1
+                rf = ctk.CTkFrame(listf, fg_color="transparent")
+                rf.pack(fill="x", padx=6, pady=3)
+                ctk.CTkLabel(rf, text=e.get("t") or "—",
+                             font=ctk.CTkFont(size=13, weight="bold")
+                             ).pack(side=side, padx=(8, 4))
+                if e.get("u"):
+                    ctk.CTkLabel(rf, text=e["u"],
+                                 text_color=CC("muted")).pack(side=side, padx=4)
+                shown = {"on": False}
+                lp = ctk.CTkLabel(rf, text="••••••••", width=90,
+                                  font=ctk.CTkFont(family="Courier", size=12))
+
+                def _toggle(e=e, lp=lp, shown=shown):
+                    _touch()
+                    shown["on"] = not shown["on"]
+                    lp.configure(text=(e.get("p") or "—")
+                                 if shown["on"] else "••••••••")
+                lp.pack(side=side, padx=4)
+                ctk.CTkButton(rf, width=36, text="👁",
+                              command=_toggle).pack(side=side, padx=2)
+                ctk.CTkButton(rf, width=44, text="🗝",
+                              command=lambda e=e: _copy_secret(
+                                  e.get("p") or "")).pack(side=side, padx=2)
+                ctk.CTkButton(rf, width=44, text="📋",
+                              command=lambda e=e: _copy_secret(
+                                  e.get("u") or "")).pack(side=side, padx=2)
+                ctk.CTkButton(rf, width=36, text="✏️",
+                              command=lambda i=i: _fill_form(i)
+                              ).pack(side=side, padx=2)
+                ctk.CTkButton(rf, width=36, text="🗑", fg_color=C("err"),
+                              hover_color=C("err"),
+                              command=lambda i=i, e=e: _del_entry(i, e)
+                              ).pack(side=side, padx=2)
+            cnt_lbl.configure(text=f"({len(V['entries'])}) · {vis_n}")
+
+        def _on_search(*_):
+            _touch()
+            render_entries(esearch.get().strip().lower())
+        esearch.bind("<KeyRelease>", _on_search)
+
+        # ── بطاقة 3: إضافة/تعديل إدخال ─────────────────────
+        c3 = self.card(p)
+        form_lbl = ctk.CTkLabel(c3, text="➕ " + self.t("Add entry"),
+                                font=ctk.CTkFont(size=14, weight="bold"),
+                                text_color=CC("primary"))
+        form_lbl.pack(anchor=anch, padx=14, pady=(12, 0))
+        f_title = self.field(c3, self.t("Title"), "", 320)
+        f_user = self.field(c3, self.t("Username"), "", 320)
+        fr2 = self.row(c3)
+        ctk.CTkLabel(fr2, text=self.t("Password"), width=150,
+                     anchor=anch).pack(side=side)
+        f_pass = ctk.CTkEntry(fr2, width=250, show="•")
+        f_pass.pack(side=side, padx=8)
+
+        def _gen_pw():
+            _touch()
+            f_pass.delete(0, "end")
+            f_pass.insert(0, _vault_genpw(16))
+            f_pass.configure(show="")
+
+        def _toggle_pw():
+            f_pass.configure(show="" if f_pass.cget("show") else "•")
+
+        ctk.CTkButton(fr2, width=44, text="🎲",
+                      command=_gen_pw).pack(side=side, padx=2)
+        ctk.CTkButton(fr2, width=44, text="👁",
+                      command=_toggle_pw).pack(side=side, padx=2)
+        f_url = self.field(c3, self.t("URL"), "", 320)
+        f_notes = self.textbox(c3, 56)
+        for w in (f_title, f_user, f_pass, f_url):
+            w.bind("<KeyRelease>", _touch)
+
+        def _clear_form():
+            for w in (f_title, f_user, f_pass, f_url):
+                w.delete(0, "end")
+            f_notes.delete("1.0", "end")
+            V["edit_idx"] = None
+            form_lbl.configure(text="➕ " + self.t("Add entry"))
+
+        def _fill_form(i: int):
+            _touch()
+            if not (0 <= i < len(V["entries"])):
+                return
+            e = V["entries"][i]
+            V["edit_idx"] = i
+            f_title.insert(0, e.get("t") or "")
+            f_user.insert(0, e.get("u") or "")
+            f_pass.configure(show="")
+            f_pass.insert(0, e.get("p") or "")
+            f_url.insert(0, e.get("url") or "")
+            f_notes.insert("1.0", e.get("n") or "")
+            form_lbl.configure(text="✏️ " + self.t("Edit entry")
+                               + f" — {e.get('t') or ''}")
+
+        def save_entry():
+            _touch()
+            t_ = f_title.get().strip()
+            if not t_:
+                self.toast("✗ " + self.t("Title"), "warn")
+                return
+            ent = {"t": t_, "u": f_user.get().strip(), "p": f_pass.get(),
+                   "url": f_url.get().strip(),
+                   "n": f_notes.get("1.0", "end").rstrip("\n"),
+                   "ts": _dt.datetime.now().isoformat(timespec="seconds")}
+            idx = V.get("edit_idx")
+            if idx is None:
+                V["entries"].append(ent)
+            else:
+                if 0 <= idx < len(V["entries"]):
+                    V["entries"][idx] = ent
+            V["edit_idx"] = None
+            _save_vault()
+            _clear_form()
+            render_entries(esearch.get().strip().lower())
+            self.toast("✓ " + self.t("Entry saved"), "ok")
+
+        self.buttons(c3, [
+            ("💾 " + self.t("Save entry"), save_entry),
+            ("🧹 " + self.t("Clear form"),
+             lambda: (_touch(), _clear_form()))])
+        render_entries("")
 
     # ═════════════════════════════════════════════════════
     # 【18】 منطق PolyBuild — تكامل كامل
@@ -3815,7 +8119,7 @@ class ToolboxApp(ctk.CTk):
         head = self.card(p, "🏗️ PolyBuild")
         ctk.CTkLabel(head,
                      text=(f"✓ detected: {script}" if script
-                           else "✗ polybuild.py غير موجود — حدّده في " + self.t("Settings")),
+                           else "✗ " + self.t("polybuild.py not found — set it in Settings")),
                      text_color=CC("ok") if script else CC("err"),
                      font=ctk.CTkFont(family="Courier", size=12)).pack(
             anchor="e" if self.rtl else "w", padx=14, pady=(0, 10))
@@ -3938,10 +8242,11 @@ class ToolboxApp(ctk.CTk):
                     self._pb_proc = subprocess.Popen(
                         args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                         text=True, encoding="utf-8", errors="replace", bufsize=1,
-                        cwd=os.path.dirname(args[1]) or APP_DIR)
+                        cwd=os.path.dirname(args[1]) or APP_DIR,
+                        creationflags=_no_window_flags())
                 except Exception as exc:
                     msg = f"✗ {exc}"
-                    self.after(0, lambda m=msg: st.configure(text=m, text_color=CC("err")))
+                    self._ui(st.configure, text=msg, text_color=CC("err"))
                     return
 
                 # watchdog: لا subprocess بدون حد زمني
@@ -3953,17 +8258,17 @@ class ToolboxApp(ctk.CTk):
                                 self._pb_proc.kill()
                             except Exception:
                                 pass
-                            self.after(0, lambda: write("\n[watchdog] timeout > 3600s — killed\n"))
+                            self._ui(write, "\n[watchdog] timeout > 3600s — killed\n")
                             return
                         time.sleep(1)
                 threading.Thread(target=watchdog, daemon=True).start()
 
                 assert self._pb_proc.stdout is not None
                 for line in self._pb_proc.stdout:
-                    self.after(0, lambda ln=line: write(ln))
+                    self._ui(write, line)
                 rc = self._pb_proc.wait()
                 took = time.time() - started
-                self.after(0, lambda: finish(rc, took, args))
+                self._ui(finish, rc, took, args)
 
             threading.Thread(target=worker, daemon=True).start()
 
