@@ -1,58 +1,78 @@
 # Ultimate Toolbox Pro v3.1
 
-صندوق أدوات متكامل لسطح المكتب — Windows / Linux / macOS
+A comprehensive desktop toolbox for Windows, Linux, and macOS.
 
-## ✨ المزايا
+## ✨ Features
 
-- **50+ أداة** موزّعة على 11 قسمًا: عام، نظام، ملفات، نصوص، أمن، وسائط، حساب ووقت، إنتاجية، مطوّر، خدمات، بيانات.
-- **10 لغات** كاملة مع دعم RTL (عربي، إنجليزي، صيني، هندي، إسباني، فرنسي، بنغالي، برتغالي، روسي، أردو).
-- **ثيم أسود/أحمر** حقيقي عبر ملف JSON مُولَّد تلقائيًا (`ctk.set_default_color_theme()`)، مع وضع فاتح/داكن.
-- **يعمل offline بالكامل** — لا اتصال شبكي إلا عند استخدام أدوات APIs صراحةً، ولا تتبّع ولا تحليلات.
-- لوحة أوامر سريعة (`Ctrl+K`)، مفضلة، سجل الأدوات المستخدمة حديثًا.
-- حماية كاملة من الانهيار: أي مكتبة اختيارية غير مثبتة تُظهر رسالة واضحة بدل crash.
+- 50+ tools distributed across 11 categories: General, System, Files, Text, Security, Media, Finance & Time, Productivity, Developer, Services, and Data.
+- Complete support for 10 languages with RTL compatibility (Arabic, English, Chinese, Hindi, Spanish, French, Bengali, Portuguese, Russian, and Urdu).
+- True black/red themed UI generated from a JSON color theme using `ctk.set_default_color_theme()`, with both light and dark modes.
+- Fully offline operation — no network access unless APIs are explicitly used, and no tracking or analytics.
+- Quick command palette (`Ctrl+K`), favorites, and recent tool history.
+- Full crash protection: any optional missing library shows a clear message instead of crashing the app.
 
-## 🏗️ تكامل PolyBuild
+## 🏗️ PolyBuild Integration
 
-يتضمن التطبيق صفحة كاملة (قسم **Developer**) للتحكم في أداة **PolyBuild Pro** — أداة بناء وتحزيم متعددة اللغات (`polybuild.py`) تحوّل مشروعك إلى ملف تنفيذي/APK جاهز:
+The app includes a dedicated Developer section to control PolyBuild Pro — a multi-language build and packaging tool (`polybuild.py`).
 
-- كشف تلقائي لسكربت `polybuild.py` (من نفس المجلد أو من الإعدادات) وكشف لغة المشروع تلقائيًا (Python, Java, JS/TS, C/C++, C#, Go, Rust, Kotlin, Dart, Ruby, PHP…) مع إمكانية التجاوز اليدوي.
-- خيارات بناء: `onefile`، `console`، `target OS`، اختيار الـ backend المناسب لكل لغة.
-- خيارات متقدمة: `hidden-imports`، `add-data`، وسيطات إضافية حرة.
-- **Check Build Tools**: فحص فوري لتوفر أدوات البناء (pyinstaller, nuitka, node, java, gradle, gcc, cargo, flutter…).
-- **Build Presets**: حفظ/تحميل/حذف إعدادات بناء جاهزة لإعادة الاستخدام.
-- **Build History**: سجل لآخر 100 عملية بناء (الوقت، اللغة، الهدف، نتيجة الخروج، المدة).
-- زر **Stop** لإيقاف عملية بناء قيد التنفيذ، مع مؤقّت حماية (watchdog) يقتل أي عملية تتجاوز ساعة.
-- تلوين تلقائي لمخرجات البناء (نجاح بالأخضر، تحذير بالأصفر، خطأ بالأحمر).
+- Automatic detection of the `polybuild.py` script from the same folder or from settings.
+- Automatic project language detection (Python, Java, JS/TS, C/C++, C#, Go, Rust, Kotlin, etc.).
+- Build options: `onefile`, console mode, target OS, and backend selection per language.
+- Advanced options: `hidden-imports`, `add-data`, and freeform extra arguments.
+- Check Build Tools: instant verification of available build tools (`pyinstaller`, `nuitka`, `node`, `java`, `gradle`, `gcc`, `cargo`, `flutter`, etc.).
+- Build Presets: save, load, and delete reusable build settings.
+- Build History: track the last 100 build operations (time, language, target, exit result, duration).
+- Stop button to cancel an active build, with a watchdog that kills any process exceeding one hour.
+- Automatic color-coding for build output (green for success, yellow for warning, red for error).
 
-اضبط مسار `polybuild.py` من **Settings → PolyBuild** إن لم يُكتشف تلقائيًا.
+Set the `polybuild.py` path from Settings → PolyBuild if it is not detected automatically.
 
-## 🚀 التشغيل
+## 🚀 Running the App
 
 ```bash
 python toolbox.py
 ```
 
-### الاعتمادات
+## 📦 Dependencies
 
-| النوع     | المكتبات                          | التثبيت                              |
-|-----------|-----------------------------------|----------------------------------------|
-| أساسية    | `customtkinter`, `psutil`         | `pip install customtkinter psutil`     |
-| اختيارية  | `requests`, `qrcode`, `Pillow`    | `pip install requests qrcode[pil] Pillow` |
+| Type | Libraries | Install |
+|------|-----------|---------|
+| Core | `customtkinter`, `psutil` | `pip install customtkinter psutil` |
+| Optional | `requests`, `qrcode`, `Pillow` | `pip install requests qrcode[pil] Pillow` |
 
-Python 3.9+ مطلوب (يستفيد التطبيق من `zoneinfo` و`dataclasses`).
+Python 3.9+ is required (the app uses `zoneinfo` and `dataclasses`).
 
-## 📁 التخزين المحلي
+## 📁 Local Storage
 
-كل البيانات تُحفظ في نفس مجلد التطبيق، بلا سحابة:
+All data is saved in the same folder as the application, with no cloud sync:
 
-- `ultimate_toolbox_settings.json` — الإعدادات، اللغة، المفضلة، مفاتيح APIs
-- `ultimate_toolbox_tasks.json` — قائمة المهام
-- `ultimate_toolbox_notes.txt` — الملاحظات
-- `ultimate_toolbox_theme.json` — ثيم الألوان (يُولَّد تلقائيًا عند كل تشغيل)
-- `polybuild_history.json` — سجل عمليات PolyBuild
+- `ultimate_toolbox_settings.json` — settings, language, favorites, API keys
+- `ultimate_toolbox_tasks.json` — task list
+- `ultimate_toolbox_notes.txt` — notes
+- `ultimate_toolbox_theme.json` — generated color theme file
+- `polybuild_history.json` — PolyBuild history log
 
-## 🔒 الخصوصية
+## 🔒 Privacy
 
-- لا حفظ بيانات سحابي.
-- لا تتبع ولا تحليلات.
-- لا اتصال بالشبكة إلا عند استخدام أدوات قسم APIs صراحةً (الطقس، العملات، الترجمة… إلخ)، وتعمل هذه الأدوات فقط عند توفر مفتاح API الخاص بها (تُدخَل من Settings).
+- No cloud storage.
+- No tracking or analytics.
+- No network access unless APIs are explicitly used from the Services section (weather, currency, translation, etc.). These tools only connect when used intentionally.
+- No telemetry or background reporting.
+
+## ⚙️ Project Philosophy
+
+Ultimate Toolbox Pro is designed to be:
+
+- fast and lightweight
+- fully local-first
+- easy to extend
+- practical for both power users and developers
+- resilient to missing dependencies and environment differences
+
+## 🧩 Notes
+
+This project is built as a personal desktop productivity and developer toolkit. It emphasizes privacy, offline reliability, and usability across multiple platforms.
+
+---
+
+To get started quickly, run the app from the project folder with Python 3.9+ and install the required dependencies listed above.
