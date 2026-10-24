@@ -34,19 +34,36 @@ jobs:
         shell: pwsh
         run: |
           $args = @(
-            "--noconfirm", "--clean", "--noconsole", "--onefile",
-            "--name", "Toolbox",
-            "--add-data", "plugins;plugins",
-            "--add-data", "polybuild.py;.",
-            "--hidden-import", "toolbox_api",
-            "--hidden-import", "PIL._tkinter_finder",
-            "--hidden-import", "zoneinfo",
-            "--hidden-import", "cryptography.fernet",
-            "--collect-all", "customtkinter",
-            "--collect-data", "tzdata",
-            "--collect-submodules", "qrcode"
+            '--noconfirm',
+            '--clean',
+            '--noconsole',
+            '--onefile',
+            '--name',
+            'Toolbox',
+            '--add-data',
+            'plugins;plugins',
+            '--add-data',
+            'polybuild.py;.',
+            '--hidden-import',
+            'toolbox_api',
+            '--hidden-import',
+            'PIL._tkinter_finder',
+            '--hidden-import',
+            'zoneinfo',
+            '--hidden-import',
+            'cryptography.fernet',
+            '--collect-all',
+            'customtkinter',
+            '--collect-data',
+            'tzdata',
+            '--collect-submodules',
+            'qrcode'
           )
-          if (Test-Path "icon.ico") { $args += @("--icon", "icon.ico") }
+
+          if (Test-Path 'icon.ico') {
+            $args += @('--icon', 'icon.ico')
+          }
+
           pyinstaller @args toolbox.py
           if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
 
