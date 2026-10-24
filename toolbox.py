@@ -180,7 +180,15 @@ MISSING_HINTS = {
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "Ultimate Toolbox Pro"
 APP_VERSION = "4.7.0"
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+IS_FROZEN = bool(getattr(sys, "frozen", False))
+# APP_DIR : مجلد بيانات المستخدم (بجانب الـ exe عند التجميع، وإلا بجانب السكربت)
+# RES_DIR : مجلد الموارد المضمّنة (_MEIPASS المؤقت في وضع onefile)
+if IS_FROZEN:
+    APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
+    RES_DIR = getattr(sys, "_MEIPASS", APP_DIR)
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
+    RES_DIR = APP_DIR
 
 F_SETTINGS = os.path.join(APP_DIR, "ultimate_toolbox_settings.json")
 F_TASKS    = os.path.join(APP_DIR, "ultimate_toolbox_tasks.json")
@@ -2117,6 +2125,18 @@ def http_post_json(url: str, payload: dict,
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=NET_TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+def _python_exe() -> str:
+    """مفسّر بايثون الحقيقي. في وضع exe يشير sys.executable إلى التطبيق نفسه،
+    فتشغيله بوسائط polybuild كان سيفتح نسخة جديدة من الواجهة بدل البناء."""
+    if not IS_FROZEN:
+        return sys.executable
+    for name in ("python", "python3", "py"):
+        found = shutil.which(name)
+        if found:
+            return found
+    return "python"
 
 
 def _no_window_flags() -> int:
@@ -4101,28 +4121,36 @@ class ToolboxApp(ctk.CTk):
         """
         if toolbox_api is None:
             return
-        pdir = os.path.join(APP_DIR, "plugins")
-        if not os.path.isdir(pdir):
-            return
         import importlib.util
-        for fname in sorted(os.listdir(pdir)):
-            if (not fname.endswith(".py")
-                    or fname.startswith(("_", "."))
-                    or fname == "toolbox_api.py"):
-                continue
-            path = os.path.join(pdir, fname)
-            try:
-                modname = ("toolbox_plugin_"
-                           + fname[:-3].replace("-", "_").replace(".", "_"))
-                spec = importlib.util.spec_from_file_location(modname, path)
-                mod = importlib.util.module_from_spec(spec)
-                sys.modules[modname] = mod
-                spec.loader.exec_module(mod)
-            except Exception:
-                print(f"[plugins] {fname}: import failed\n{traceback.format_exc()}")
-                self.toast(self.t("Plugin error: {name}").format(name=fname),
-                           "err", 4200)
-                continue
+        # مجلدات الإضافات: بجانب التطبيق (إضافات المستخدم) ثم المضمّنة داخل الـ exe
+        pdirs = [d for d in dict.fromkeys(
+                     (os.path.join(APP_DIR, "plugins"),
+                      os.path.join(RES_DIR, "plugins")))
+                 if os.path.isdir(d)]
+        if not pdirs:
+            return
+        seen_files = set()
+        for pdir in pdirs:
+            for fname in sorted(os.listdir(pdir)):
+                if (not fname.endswith(".py")
+                        or fname.startswith(("_", "."))
+                        or fname == "toolbox_api.py"
+                        or fname in seen_files):
+                    continue
+                seen_files.add(fname)
+                path = os.path.join(pdir, fname)
+                try:
+                    modname = ("toolbox_plugin_"
+                               + fname[:-3].replace("-", "_").replace(".", "_"))
+                    spec = importlib.util.spec_from_file_location(modname, path)
+                    mod = importlib.util.module_from_spec(spec)
+                    sys.modules[modname] = mod
+                    spec.loader.exec_module(mod)
+                except Exception:
+                    print(f"[plugins] {fname}: import failed\n{traceback.format_exc()}")
+                    self.toast(self.t("Plugin error: {name}").format(name=fname),
+                               "err", 4200)
+                    continue
         # دمج الأدوات المسجّلة (رفض المكرر بأمان)
         known = set(TOOL_BY_ID) | set(self._plugin_pages)
         new: List[Tool] = []
@@ -8076,10 +8104,11 @@ class ToolboxApp(ctk.CTk):
         cfg = (self.settings.get("polybuild_path") or "").strip()
         if cfg and os.path.isfile(cfg):
             return cfg
-        for cand in ("polybuild.py", "PolyBuild.py", "polybuild/polybuild.py"):
-            fp = os.path.join(APP_DIR, cand)
-            if os.path.isfile(fp):
-                return fp
+        for base in dict.fromkeys((APP_DIR, RES_DIR)):
+            for cand in ("polybuild.py", "PolyBuild.py", "polybuild/polybuild.py"):
+                fp = os.path.join(base, cand)
+                if os.path.isfile(fp):
+                    return fp
         return None
 
     @staticmethod
@@ -8200,7 +8229,7 @@ class ToolboxApp(ctk.CTk):
             proj = src.get().strip()
             if not proj:
                 raise ValueError("select a project folder/file")
-            args = [sys.executable, sc, proj]
+            args = [_python_exe(), sc, proj]
             if lang.get() != "auto":
                 args += ["--lang", lang.get()]
             if backend.get() not in ("auto", "-"):
@@ -8310,7 +8339,7 @@ class ToolboxApp(ctk.CTk):
         tst = self.statuslabel(tools_card)
 
         def check_tools() -> str:
-            checks = [("python", [sys.executable, "--version"]),
+            checks = [("python", [_python_exe(), "--version"]),
                       ("pyinstaller", ["pyinstaller", "--version"]),
                       ("nuitka", ["python", "-m", "nuitka", "--version"]),
                       ("node", ["node", "--version"]), ("npm", ["npm", "--version"]),
@@ -8441,6 +8470,18 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n[i] bye")
     except Exception:
+        _tb = traceback.format_exc()
+        try:                                    # --noconsole: لا يوجد طرفية، نكتب سجلًا
+            with open(os.path.join(APP_DIR, "toolbox_crash.log"), "w",
+                      encoding="utf-8") as _f:
+                _f.write(_tb)
+        except Exception:
+            pass
+        try:
+            from tkinter import messagebox as _mb
+            _mb.showerror(APP_NAME, _tb[-1500:])
+        except Exception:
+            pass
         traceback.print_exc()
         print("\n[!] حدث خطأ غير متوقع. تحقّق من الاعتمادات:\n"
               "    pip install customtkinter psutil requests qrcode[pil] Pillow")
