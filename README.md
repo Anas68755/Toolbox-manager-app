@@ -1,4 +1,4 @@
-# Ultimate Toolbox Pro v3.1
+# Ultimate Toolbox Pro v4.8
 
 A comprehensive desktop toolkit for Windows, Linux, and macOS.
 
@@ -16,6 +16,19 @@ The project is built for users who want a fast, offline-friendly, and highly pra
 - Fully offline-first behavior: no cloud sync, no analytics, and no background tracking.
 - Quick command palette (`Ctrl+K`), favorites manager, and recent tools history.
 - Resilient behavior: missing optional libraries produce clear warnings instead of crashing the app.
+
+## What's new in 4.8
+
+- **Bigger, adjustable font** — default is now ~15% larger. Change it in Settings → Font size (Small / Normal / Large / Extra large); "Save & restart" applies it. Plugins can use `toolbox_api.font(size)` to follow the setting.
+- **New free, key-less API tools** (Dictionary, Countries, Public Holidays, Wikipedia, Books, ISS) plus keyless fallbacks for Weather, Currency and News.
+- **Fixes**
+  - Settings/tasks/history are written atomically, so a crash can no longer corrupt them; a damaged settings file no longer blocks startup.
+  - "Next birthday" in Date & Age was computed from the wrong date; it now counts from today.
+  - Calculator: `factorial()` is range-limited so a huge input can't freeze the UI.
+  - Unit converter: more precise factors (lb, oz, km/h, knot, acre, ft², cup, gallon, pint, stone).
+  - Bulk Rename: Preview now shows exactly what a real run does (skips clashing targets, allows case-only renames).
+  - Vault: files with a tampered iteration count are rejected instead of hanging the app.
+  - `requirements.txt` was empty; it now lists the dependencies.
 
 ## Features
 
@@ -74,6 +87,23 @@ The project is built for users who want a fast, offline-friendly, and highly pra
 - Optional API-driven utilities such as weather, currency, translation, and other external services
 - Explicitly user-initiated network access only
 
+Free, keyless APIs (chosen from the [public-apis](https://github.com/public-apis/public-apis) list):
+
+| Tool | API | Key |
+|------|-----|-----|
+| Weather (fallback) | Open-Meteo | none |
+| Currency (fallback) | open.er-api.com, Frankfurter | none |
+| News (fallback) | Hacker News (Firebase) | none |
+| Dictionary | dictionaryapi.dev | none |
+| Countries | REST Countries | none |
+| Public Holidays | Nager.Date | none |
+| Wikipedia | Wikipedia REST | none |
+| Books | Open Library | none |
+| ISS Tracker | wheretheiss.at | none |
+| Fun APIs (trivia, facts, dog) | Open Trivia DB, Useless Facts, Dog CEO | none |
+
+Optional keys (OpenWeather, NewsAPI, ipinfo, GitHub, OpenAI) are still supported in Settings.
+
 ## PolyBuild Integration
 
 The app includes a dedicated developer section for PolyBuild Pro, a multi-language build and packaging utility powered by `polybuild.py`.
@@ -109,7 +139,7 @@ python toolbox.py
 | Type | Libraries | Install |
 |------|-----------|---------|
 | Core | `customtkinter`, `psutil` | `pip install customtkinter psutil` |
-| Optional | `requests`, `qrcode`, `Pillow` | `pip install requests qrcode[pil] Pillow` |
+| Optional | `requests`, `qrcode`, `Pillow`, `cryptography` | `pip install -r requirements.txt` |
 
 Python 3.9+ is required, and the project uses `zoneinfo` and `dataclasses` where applicable.
 
