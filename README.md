@@ -1,4 +1,4 @@
-# Ultimate Toolbox Pro v4.8
+# Ultimate Toolbox Pro
 
 A comprehensive desktop toolkit for Windows, Linux, and macOS.
 
@@ -17,7 +17,35 @@ The project is built for users who want a fast, offline-friendly, and highly pra
 - Quick command palette (`Ctrl+K`), favorites manager, and recent tools history.
 - Resilient behavior: missing optional libraries produce clear warnings instead of crashing the app.
 
-## What's new in 4.8
+## Build the Windows EXE locally
+
+Double-click **`build.bat`** (needs Python 3 on PATH). It creates a `.venv`, installs `requirements.txt` + PyInstaller, checks syntax and builds **`dist\Toolbox.exe`** with the same options as the GitHub workflow.
+
+## LLM agent mode (internet & device access, with your permission)
+
+In **Local LLM → 🛡 Agent mode** you can let the model use tools. It is **off by default**; when you turn it on, the model can ask to:
+
+| Tool | What it does | Permission |
+|------|--------------|------------|
+| `web_search`, `web_fetch` | search the web / read a page through **your** internet connection (no API keys; DuckDuckGo, Wikipedia fallback) | Off · Ask each time · Allow this session |
+| `read_file`, `list_dir` | read text files / list folders | Off · Ask each time · Allow this session |
+| `write_file` | create / overwrite / append a text file | Off · Ask each time (**always asks**) |
+| `run_command` | run a program (no shell, 60 s limit) | Off · Ask each time (**always asks**) |
+| `system_info` | OS, CPU, RAM, disk (no user/host name) | Off · Ask each time · Allow this session |
+
+Every request opens a window showing the exact URL / path / command / file content, with **Allow once**, **Allow for this session** (where permitted) and **Deny**. No answer within 3 minutes counts as Deny. Works with any model — tools use a plain-text `<tool_call>` protocol, no special model support needed.
+
+Safety rules built in:
+- Writing and running commands can never be "allowed for the session".
+- Once the model has read local data (files, command output, system info), internet access asks again every time, so data can't be sent out silently.
+- Local/private addresses (localhost, 192.168.x.x, 10.x.x.x…) always ask.
+- API keys, encrypted vaults, `.ssh`, `.gnupg`, `.aws` and `.kube` can never be read or written by the agent.
+- Web pages and files are labelled as untrusted data in the prompt; max 6 tool calls per answer; results are size-limited.
+- Session permissions live in memory only and are cleared on restart ("Revoke session permissions" clears them immediately).
+
+Plugins and the rest of the app are unchanged. Small local models are less reliable at tool use than large ones — if one ignores the protocol, try a larger model.
+
+## Bigger font, free APIs and fixes
 
 - **Bigger, adjustable font** — default is now ~15% larger. Change it in Settings → Font size (Small / Normal / Large / Extra large); "Save & restart" applies it. Plugins can use `toolbox_api.font(size)` to follow the setting.
 - **New free, key-less API tools** (Dictionary, Countries, Public Holidays, Wikipedia, Books, ISS) plus keyless fallbacks for Weather, Currency and News.

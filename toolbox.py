@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Ultimate Toolbox Pro v4.5
+Ultimate Toolbox Pro
 =========================
 صندوق أدوات متكامل لسطح المكتب — Windows / Linux / macOS
 Python 3.9+ · customtkinter (6.x) · offline-first
@@ -11,7 +11,7 @@ Python 3.9+ · customtkinter (6.x) · offline-first
 الاعتمادات الاختيارية: requests, qrcode, Pillow, llama-cpp-python (للـ LLM المحلي)،
                       cryptography (لخزائن AES/Fernet — اختياري، له بديل مدمج)
 
-سجل تحسينات v4.5 — التفكير العميق + موديلات أكبر + خزائن Vault:
+سجل تحسينات — التفكير العميق + موديلات أكبر + خزائن Vault:
 - مفتاح 🧠 "التفكير العميق" في المحادثة: تشغيل/إيقاف بضغطة (للأجهزة الضعيفة)
   · الإيقاف يحجب ‎<think>…</think>‎ وreasoning_content من البث فورًا ويعرض الجواب فقط
   · مع خادم llama.cpp يُرسل chat_template_kwargs enable_thinking=false فلا تُولَّد
@@ -27,7 +27,7 @@ Python 3.9+ · customtkinter (6.x) · offline-first
   · نسخ كلمة السر بمسح تلقائي من الحافظة بعد 30 ثانية، بحث فوري، توليد كلمات سر
   · قفل تلقائي بعد 5 دقائق خمول + قفل يدوي + تغيير الكلمة الرئيسية + حذف الخزنة
 
-سجل تحسينات v4.1 — Local LLM (GGUF):
+سجل تحسينات — Local LLM (GGUF):
 - أداة جديدة 🦙 Local LLM في قسم Developer: تشغيل نماذج GGUF محليًا بالكامل دون إنترنت
 - المحرك: llama.cpp عبر llama-cpp-python (اختياري — غيابه لا يؤثر على أي أداة أخرى)
 - تحميل/إخراج الموديل (Unload يحرر الذاكرة)، والموديل يبقى محمّلًا عند التنقل بين الأدوات
@@ -40,7 +40,7 @@ Python 3.9+ · customtkinter (6.x) · offline-first
 - صفر استدعاءات Tcl من خيوط العامل في أداة LLM: قيم الواجهة تُقرأ في الخيط الرئيسي وتُمرَّر كوسائط بايثون سادة (أكثر أمانًا على macOS خاصة)
 - كل النصوص الجديدة مترجمة في 10 لغات
 
-سجل تحسينات v4.0 — Phase 1 (القائمة الجانبية القابلة للتمرير + UX):
+سجل تحسينات — Phase 1 (القائمة الجانبية القابلة للتمرير + UX):
 - الشريط الجانبي أصبح CTkScrollableFrame قابلًا للتمرير: كل الأدوات تظهر حتى في النوافذ القصيرة (500px)
 - شريط تمرير رفيع 6px بألوان الثيم (border/primary) مع إخفاء تلقائي عندما لا تكون هناك حاجة له
 - عجلة الفأرة تعمل فوق الأزرار والعناوين (مدمجة في customtkinter 6.x + ربط صريح للأمان)
@@ -52,7 +52,7 @@ Python 3.9+ · customtkinter (6.x) · offline-first
 - عدّاد نتائج البحث في شريط الحالة + Escape يمسح البحث
 - خطوط القائمة مخزّنة مؤقتًا (أسرع بـ ~70 إنشاء خط لكل إعادة بناء)
 - اختصارات جديدة: F1 حول، Ctrl+, إعدادات، Ctrl+D تبديل الوضع
-- سجل تحسينات v3.2 (Changelog):
+- سجل تحسينات (Changelog):
 - إصلاح عرض المؤقّت/بومودورو للمدد > 59 دقيقة (كانت تلتفّ إلى 00:00)
 - إصلاح حساب "الميلاد القادم" لتواريخ 29 فبراير (كان ينهار)
 - فحص المنافذ أصبح متوازيًا (أسرع ~50×) مع مؤشر تقدّم مباشر ونطاق أوسع
@@ -181,7 +181,6 @@ MISSING_HINTS = {
 # 【2】 الثوابت والمسارات
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "Ultimate Toolbox Pro"
-APP_VERSION = "4.9.0"
 IS_FROZEN = bool(getattr(sys, "frozen", False))
 # APP_DIR : مجلد بيانات المستخدم (بجانب الـ exe عند التجميع، وإلا بجانب السكربت)
 # RES_DIR : مجلد الموارد المضمّنة (_MEIPASS المؤقت في وضع onefile)
@@ -202,7 +201,7 @@ SUBPROCESS_TIMEOUT = 30          # لا subprocess بدون timeout
 NET_TIMEOUT = 12
 MAX_HISTORY = 100
 
-# ✦ v4.2: واجهة الإضافات — يجب أن تجاور toolbox.py؛ غيابها لا يُسقط التطبيق
+# ✦ واجهة الإضافات — يجب أن تجاور toolbox.py؛ غيابها لا يُسقط التطبيق
 try:
     import toolbox_api
 except Exception:                      # تشغيل من sandbox بلا toolbox_api
@@ -451,7 +450,7 @@ _AR = {
     "ISS Tracker": "تتبع محطة الفضاء",
     "AI Assistant": "المساعد الذكي", "Fake Data": "بيانات وهمية",
     "Random Picker": "اختيار عشوائي", "Lorem Ipsum": "نص تجريبي",
-    # مفاتيح v3.2
+    # مفاتيح
     "Click a color to copy": "اضغط على أي لون لنسخه",
     "One item per line": "سطر واحد لكل عنصر",
     "3 stages: size → 8KB prefix → full hash": "ثلاث مراحل: الحجم ← بادئة 8KB ← التجزئة الكاملة",
@@ -470,10 +469,10 @@ _AR = {
     "Terminate process?": "إنهاء العملية؟",
     "Delete duplicates?": "حذف الملفات المكرّرة؟",
     "autosave every 30s": "حفظ تلقائي كل 30 ثانية",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "اسحب للأسفل ↓",
     "{n} tools found": "تم العثور على {n} أداة",
-    # مفاتيح v4.1 — Local LLM (GGUF)
+    # مفاتيح Local LLM (GGUF)
     "Local LLM": "نموذج لغوي محلي",
     "Run GGUF models locally — 100% offline": "شغّل نماذج GGUF محليًا — دون اتصال 100%",
     "Model": "الموديل", "GGUF model file": "ملف GGUF",
@@ -519,10 +518,10 @@ _ZH = {
     "Timer": "计时器", "Todo List": "待办事项", "Notes": "笔记",
     "Backup": "备份", "Weather": "天气", "Currency": "汇率", "Translate": "翻译",
     "News": "新闻", "Fake Data": "测试数据", "Time Zones": "时区",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "向下滚动查看更多 ↓",
     "{n} tools found": "找到 {n} 个工具",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "本地大模型",
     "Run GGUF models locally — 100% offline": "本地运行 GGUF 模型 — 100% 离线",
     "Model": "模型", "GGUF model file": "GGUF 模型文件",
@@ -569,10 +568,10 @@ _ES = {
     "Notes": "Notas", "Backup": "Copia de seguridad", "Weather": "Clima",
     "Currency": "Divisas", "Translate": "Traducir", "News": "Noticias",
     "Time Zones": "Zonas horarias", "Fake Data": "Datos de prueba",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "Desplázate para ver más ↓",
     "{n} tools found": "Se encontraron {n} herramientas",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "LLM local",
     "Run GGUF models locally — 100% offline": "Ejecuta modelos GGUF en local — 100% sin conexión",
     "Model": "Modelo", "GGUF model file": "Archivo GGUF",
@@ -619,10 +618,10 @@ _FR = {
     "Timer": "Minuteur", "Todo List": "Tâches", "Notes": "Notes",
     "Backup": "Sauvegarde", "Weather": "Météo", "Currency": "Devises",
     "Translate": "Traduire", "News": "Actualités", "Time Zones": "Fuseaux horaires",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "Faites défiler pour voir plus ↓",
     "{n} tools found": "{n} outils trouvés",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "LLM local",
     "Run GGUF models locally — 100% offline": "Exécutez des modèles GGUF en local — 100 % hors ligne",
     "Model": "Modèle", "GGUF model file": "Fichier GGUF",
@@ -669,10 +668,10 @@ _RU = {
     "Notes": "Заметки", "Backup": "Резервная копия", "Weather": "Погода",
     "Currency": "Валюты", "Translate": "Перевод", "News": "Новости",
     "Time Zones": "Часовые пояса",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "Прокрутите вниз, чтобы увидеть больше ↓",
     "{n} tools found": "Найдено инструментов: {n}",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "Локальная LLM",
     "Run GGUF models locally — 100% offline": "Запуск GGUF-моделей локально — 100% офлайн",
     "Model": "Модель", "GGUF model file": "GGUF-файл",
@@ -713,10 +712,10 @@ _PT = {
     "Currency": "Moedas", "Translate": "Traduzir", "News": "Notícias",
     "Password Generator": "Gerador de senhas", "QR Code": "Código QR",
     "Time Zones": "Fusos horários", "Date & Time": "Data e hora",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "Role para ver mais ↓",
     "{n} tools found": "{n} ferramentas encontradas",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "LLM local",
     "Run GGUF models locally — 100% offline": "Executa modelos GGUF localmente — 100% offline",
     "Model": "Modelo", "GGUF model file": "Arquivo GGUF",
@@ -754,10 +753,10 @@ _HI = {
     "Calculator": "कैलकुलेटर", "Timer": "टाइमर", "Notes": "नोट्स",
     "Todo List": "कार्य सूची", "Weather": "मौसम", "News": "समाचार",
     "Translate": "अनुवाद", "QR Code": "क्यूआर कोड", "Time Zones": "समय क्षेत्र",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "और देखने के लिए नीचे स्क्रॉल करें ↓",
     "{n} tools found": "{n} उपकरण मिले",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "लोकल LLM",
     "Run GGUF models locally — 100% offline": "GGUF मॉडल लोकल चलाएँ — 100% ऑफ़लाइन",
     "Model": "मॉडल", "GGUF model file": "GGUF फ़ाइल",
@@ -794,10 +793,10 @@ _BN = {
     "Calculator": "ক্যালকুলেটর", "Timer": "টাইমার", "Notes": "নোট",
     "Todo List": "কাজের তালিকা", "Weather": "আবহাওয়া", "News": "সংবাদ",
     "Translate": "অনুবাদ", "QR Code": "কিউআর কোড", "Time Zones": "সময় অঞ্চল",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "আরও দেখতে নিচে স্ক্রল করুন ↓",
     "{n} tools found": "{n}টি টুল পাওয়া গেছে",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "লোকাল LLM",
     "Run GGUF models locally — 100% offline": "GGUF মডেল লোকালি চালান — ১০০% অফলাইন",
     "Model": "মডেল", "GGUF model file": "GGUF ফাইল",
@@ -834,10 +833,10 @@ _UR = {
     "Calculator": "کیلکولیٹر", "Timer": "ٹائمر", "Notes": "نوٹس",
     "Todo List": "فہرست کام", "Weather": "موسم", "News": "خبریں",
     "Translate": "ترجمہ", "QR Code": "کیو آر کوڈ", "Time Zones": "ٹائم زونز",
-    # مفاتيح v4.0 Phase 1
+    # مفاتيح Phase 1
     "Scroll for more ↓": "مزید دیکھنے کے لیے نیچے اسکرول کریں ↓",
     "{n} tools found": "{n} ٹولز مل گئے",
-    # v4.1 — Local LLM (GGUF)
+    # Local LLM (GGUF)
     "Local LLM": "لوکل LLM",
     "Run GGUF models locally — 100% offline": "GGUF ماڈلز لوکل چلائیں — 100% آف لائن",
     "Model": "ماڈل", "GGUF model file": "GGUF فائل",
@@ -863,7 +862,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "ru": _RU, "pt": _PT, "hi": _HI, "bn": _BN, "ur": _UR,
 }
 
-# ✦ v4.2: مفاتيح نظام الإضافات — تُدمج هنا بدل تعديل كل قاموس لغة يدويًا
+# ✦ مفاتيح نظام الإضافات — تُدمج هنا بدل تعديل كل قاموس لغة يدويًا
 _PLUG_T: Dict[str, Dict[str, str]] = {
     "ar": {
         "Plugins": "الإضافات",
@@ -924,7 +923,7 @@ for _l, _m in _PLUG_T.items():
     TRANSLATIONS.setdefault(_l, {}).update(_m)
 del _l, _m
 
-# ✦ v4.3: مفاتيح محرّكات LLM الخلفية (خادم llama.cpp) — تُدمج بنفس أسلوب الإضافات
+# ✦ مفاتيح محرّكات LLM الخلفية (خادم llama.cpp) — تُدمج بنفس أسلوب الإضافات
 _LLM_T: Dict[str, Dict[str, str]] = {
     "ar": {
         "Backend": "المحرّك الخلفي",
@@ -1066,7 +1065,7 @@ for _l, _m in _LLM_T.items():
     TRANSLATIONS.setdefault(_l, {}).update(_m)
 del _l, _m
 
-# ✦ v4.4: مفاتيح التنزيل التلقائي (llama-server + موديلات GGUF) — بنفس أسلوب _LLM_T
+# ✦ مفاتيح التنزيل التلقائي (llama-server + موديلات GGUF) — بنفس أسلوب _LLM_T
 _LLMDL_T: Dict[str, Dict[str, str]] = {
     "ar": {
         "Build": "النسخة",
@@ -1235,7 +1234,7 @@ for _l, _m in _LLMDL_T.items():
     TRANSLATIONS.setdefault(_l, {}).update(_m)
 del _l, _m
 
-# ✦ v4.5: مفاتيح التفكير العميق + الخزائن المشفّرة — بنفس أسلوب _LLMDL_T
+# ✦ مفاتيح التفكير العميق + الخزائن المشفّرة — بنفس أسلوب _LLMDL_T
 # (URL/Notes/Generate موجودة مسبقًا في TRANSLATIONS وتُعاد استخدامها)
 _V45_T: Dict[str, Dict[str, str]] = {
     "ar": {
@@ -1602,7 +1601,7 @@ for _l, _m in _V45_T.items():
     TRANSLATIONS.setdefault(_l, {}).update(_m)
 del _l, _m
 
-# ✦ v4.6: مفاتيح وضع الرام المنخفضة + موديل المسودة — بنفس أسلوب _V45_T
+# ✦ مفاتيح وضع الرام المنخفضة + موديل المسودة — بنفس أسلوب _V45_T
 # (Estimated RAM/Browse/Model موجودة مسبقًا وتُعاد استخدامها؛
 #  MoE اختصار تقني يُترك كما هو في كل اللغات)
 _V46_T: Dict[str, Dict[str, str]] = {
@@ -1796,7 +1795,7 @@ for _l, _m in _V46_T.items():
     TRANSLATIONS.setdefault(_l, {}).update(_m)
 del _l, _m
 
-# ✦ v4.7: مفاتيح الموديلات غير المحجوبة — بنفس أسلوب _V45_T/_V46_T
+# ✦ مفاتيح الموديلات غير المحجوبة — بنفس أسلوب _V45_T/_V46_T
 # (Model/Canceled/Download failed... موجودة مسبقًا وتُعاد استخدامها)
 _V47_T: Dict[str, Dict[str, str]] = {
     "ar": {
@@ -2127,7 +2126,7 @@ def http_get(url: str, headers: Optional[dict] = None,
              timeout: int = NET_TIMEOUT) -> Tuple[int, str]:
     """GET بسيط — يستخدم requests إن وُجد، وإلا urllib."""
     headers = dict(headers or {})
-    headers.setdefault("User-Agent", f"{APP_NAME}/{APP_VERSION}")
+    headers.setdefault("User-Agent", APP_NAME)
     if HAS_REQUESTS:
         r = requests.get(url, headers=headers, timeout=timeout)
         return r.status_code, r.text
@@ -2148,7 +2147,7 @@ def http_request(method: str, url: str, headers: Optional[dict] = None,
                  timeout: int = NET_TIMEOUT) -> Tuple[int, str, Dict[str, str]]:
     """طلب HTTP عام (GET/POST/PUT/DELETE/HEAD) — يعيد (الحالة، النص، الترويسات)."""
     hdrs = dict(headers or {})
-    hdrs.setdefault("User-Agent", f"{APP_NAME}/{APP_VERSION}")
+    hdrs.setdefault("User-Agent", APP_NAME)
     body = data.encode("utf-8") if isinstance(data, str) else data
     if HAS_REQUESTS:
         r = requests.request(method, url, headers=hdrs, data=body, timeout=timeout)
@@ -2164,7 +2163,7 @@ def http_post_json(url: str, payload: dict,
     """POST JSON — للمساعد الذكي وغيره."""
     headers = dict(headers or {})
     headers.setdefault("Content-Type", "application/json")
-    headers.setdefault("User-Agent", f"{APP_NAME}/{APP_VERSION}")
+    headers.setdefault("User-Agent", APP_NAME)
     data = json.dumps(payload).encode("utf-8")
     if HAS_REQUESTS:
         r = requests.post(url, data=data, headers=headers, timeout=NET_TIMEOUT)
@@ -2298,7 +2297,7 @@ def convert_temp(v: float, src: str, dst: str) -> float:
 
 
 # ─────────────────────────────────────────────────────────────
-# 【5.5】 LLM المحلي (GGUF) — v4.1
+# 【5.5】 LLM المحلي (GGUF)
 # ─────────────────────────────────────────────────────────────
 _LAMACPP: Dict[str, Any] = {"tried": False, "mod": None}
 
@@ -2417,7 +2416,7 @@ def gguf_metadata(path: str) -> Dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────
-# 【5.5b】 v4.6: فحص موترات GGUF (كشف MoE) + مقدّر الرام المنخفضة
+# 【5.5b】 فحص موترات GGUF (كشف MoE) + مقدّر الرام المنخفضة
 # ─────────────────────────────────────────────────────────────
 
 # حجم كتلة/عنصر لأنواع تكميم GGML: type → (block_size, bytes_per_block)
@@ -2435,7 +2434,7 @@ _GGUF_SCAN_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
 def _gguf_tensor_scan(path: str) -> Dict[str, Any]:
-    """✦ v4.6: مسح قسم معلومات الموترات في GGUF — كشف موديلات MoE وقياسها.
+    """✦ مسح قسم معلومات الموترات في GGUF — كشف موديلات MoE وقياسها.
 
     يمشي كامل قسم البيانات الوصفية (بلا توقف مبكر عند tokenizer) ثم يقرأ
     إدخالات الموترات ويحسب الأحجام النظرية من (numel × dtype)، فيجمع:
@@ -2544,7 +2543,7 @@ def _gguf_tensor_scan(path: str) -> Dict[str, Any]:
 def _llm_estimate_ram(meta: Dict[str, Any], file_size: int, *,
                       lowram: bool = False, kv_q: str = "f16"
                       ) -> Dict[str, Any]:
-    """✦ v4.6: مقدّر ذاكرة وحدوي — يقود سطور «Estimated RAM» في الواجهة.
+    """✦ مقدّر ذاكرة وحدوي — يقود سطور «Estimated RAM» في الواجهة.
 
     المدخلات من gguf_metadata + _gguf_tensor_scan — بلا وصول لملفات.
     يعيد: moe / experts / experts_used / kv (تقدير ذاكرة السياق حسب kv_q)
@@ -2607,7 +2606,7 @@ def _llm_strip_optional(args: List[str]) -> List[str]:
 
 def _llm_lowram_flags(lowram: bool, kv_q: str, moe: bool,
                       draft: str = "") -> List[str]:
-    """✦ v4.6: وسائط llama-server لوضع الرام المنخفضة + موديل المسودة.
+    """✦ وسائط llama-server لوضع الرام المنخفضة + موديل المسودة.
 
     - lowram: بلا تثبيت صفحات (--no-mlock) وبلا تسخين (--no-warmup يمنع
       قفزة الرام عند الإقلاع) + دفعات حساب صغيرة ‎-b/-ub 128‎ تقلّص مخازن
@@ -2634,7 +2633,7 @@ def _llm_lowram_flags(lowram: bool, kv_q: str, moe: bool,
 
 
 # ─────────────────────────────────────────────────────────────
-# 【5.6】 خادم llama.cpp عبر HTTP — v4.3 (بلا llama-cpp-python وبلا مترجم)
+# 【5.6】 خادم llama.cpp عبر HTTP (بلا llama-cpp-python وبلا مترجم)
 # ─────────────────────────────────────────────────────────────
 _LLM_INSTALL_HELP = """\
 llama-cpp-python — install help
@@ -2643,7 +2642,7 @@ Python 3.13 on Windows has NO prebuilt wheel for llama-cpp-python,
 so pip falls back to compiling it and fails without MSVC
 ("nmake: no such file or directory").
 
-OPTION 1 - llama.cpp server  (RECOMMENDED - no compiler, v4.4 auto-download)
+OPTION 1 - llama.cpp server  (RECOMMENDED - no compiler, auto-download)
   1) In this tool:  Build = "Auto (recommended)"
      ->  click "Download llama-server" — the toolbox picks the
      right prebuilt binary (CPU/CUDA) from GitHub automatically.
@@ -2685,7 +2684,7 @@ def _llm_chat_body(messages: List[Dict[str, str]], *, max_tokens: int,
                    disable_thinking: bool = False) -> Dict[str, Any]:
     """جسم طلب /v1/chat/completions — مُفصَل ليُختبر وحدويًا.
 
-    ✦ v4.5: disable_thinking=True يُرسل chat_template_kwargs enable_thinking=false
+    ✦ disable_thinking=True يُرسل chat_template_kwargs enable_thinking=false
     (مدعوم في llama.cpp الحديثة لموديلات Qwen3 وغيرها) — فيستغني عن توليد رموز
     التفكير أصلًا بدل إخفائها بعد توليدها. الخوادم الأقدم تتجاهل الحقل بهدوء.
     """
@@ -2709,7 +2708,7 @@ def _llm_http_stream(base_url: str, messages: List[Dict[str, str]], *,
 
     ينتج قواميس بنفس شكل llama-cpp-python
     ({"choices": [{"delta": {"content": ...}}]}) لتبقى حلقة الاستهلاك واحدة.
-    ✦ v4.5: قد يُنتج أيضًا delta["reasoning_content"] (خوادم llama.cpp الحديثة
+    ✦ قد يُنتج أيضًا delta["reasoning_content"] (خوادم llama.cpp الحديثة
     تفصل رموز التفكير عن الجواب) — المستهلك يقرر عرضه أو حجبه حسب المفتاح.
     """
     url = base_url.rstrip("/") + "/v1/chat/completions"
@@ -2744,7 +2743,7 @@ def _llm_http_stream(base_url: str, messages: List[Dict[str, str]], *,
 
 
 class _ThinkFilter:
-    """✦ v4.5: مرشّح بثّي يحجب كتل التفكير ‎<think>…</think>‎ (وبدائلها).
+    """✦ مرشّح بثّي يحجب كتل التفكير ‎<think>…</think>‎ (وبدائلها).
 
     يُغذّى بمقاطع قد تتقطّع في أي حرف ويرجع النص الظاهر فقط.
     يعمل مع موديلات DeepSeek-R1/QwQ/Qwen3-thinking وأي موديل يضع التفكير
@@ -2819,7 +2818,7 @@ def _llm_start_server(exe: str, model: str, ctx: int, gpu: int, thr: int,
 
     يعمل مع أي ثنائي llama-server (Windows/Linux/macOS) بلا مترجم وبلا
     llama-cpp-python. يُنهي العملية بنفسه عند المهلة أو الإيقاف.
-    ✦ v4.6: ‎extra‎ = وسائط إضافية (وضع الرام المنخفضة/المسودة من
+    ✦ ‎extra‎ = وسائط إضافية (وضع الرام المنخفضة/المسودة من
     _llm_lowram_flags). إن خرج الخادم مبكرًا مع المفاتيح الاختيارية
     (cache-type/override-tensor/draft…) تُعاد المحاولة مرة واحدة بدونها —
     لإصدارات llama.cpp الأقدم التي لا تعرفها.
@@ -2874,13 +2873,13 @@ def _llm_start_server(exe: str, model: str, ctx: int, gpu: int, thr: int,
 
 
 # ─────────────────────────────────────────────────────────────
-# 【5.7】 التنزيل التلقائي — v4.4: llama-server من GitHub + موديلات GGUF من Hugging Face
+# 【5.7】 التنزيل التلقائي — llama-server من GitHub + موديلات GGUF من Hugging Face
 # ─────────────────────────────────────────────────────────────
-_LLM_UA = "UltimateToolbox/" + APP_VERSION
+_LLM_UA = "UltimateToolbox"
 _LLM_GH_API = "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest"
 
 # موديلات GGUF موصى بها — روابط مباشرة مجانية بلا تسجيل (Apache/Llama مفتوحة)
-# ✦ v4.5: 25 موديلًا بقسمان — v4.6: عائلة MoE — v4.7: قسم unc غير المحجوب
+# ✦ 25 موديلًا بقسمان — عائلة MoE — قسم unc غير المحجوب
 #   (Dolphin/Abliterated/Lexi/Stheno) — كل الروابط فُحصت حيًّا (HTTP 200)
 #   والأحجام من Content-Length الفعلي
 _LLM_MODELS: List[Dict[str, str]] = [
@@ -2946,7 +2945,7 @@ _LLM_MODELS: List[Dict[str, str]] = [
     {"tier": "large", "name": "Qwen3 30B-A3B (MoE) · Q4_K_M", "size": "≈18.6 GB",
      "url": "https://huggingface.co/Qwen/Qwen3-30B-A3B-GGUF/resolve/main/"
             "Qwen3-30B-A3B-Q4_K_M.gguf"},
-    # ✦ v4.6: عائلة 30B-A3B MoE — تعمل بأقل من 8GB رام مع وضع Low RAM
+    # ✦ عائلة 30B-A3B MoE — تعمل بأقل من 8GB رام مع وضع Low RAM
     #   (الخبراء تُقرأ من القرص) — مرايا unsloth (الرسمية gated) فُحصت 200
     {"tier": "large", "name": "Qwen3 30B-A3B Instruct 2507 (MoE) · Q4_K_M",
      "size": "≈18.6 GB",
@@ -2975,7 +2974,7 @@ _LLM_MODELS: List[Dict[str, str]] = [
     {"tier": "large", "name": "DeepSeek-R1-Distill-Llama-70B · Q4_K_M", "size": "≈42.5 GB",
      "url": "https://huggingface.co/unsloth/DeepSeek-R1-Distill-Llama-70B-GGUF/resolve/main/"
             "DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf"},
-    # ── غير محجوبة (tier=unc) — v4.7: نسخ معدّلة من المجتمع أُزيل منها سلوك
+    # ── غير محجوبة (tier=unc) — نسخ معدّلة من المجتمع أُزيل منها سلوك
     #    الرفض (Dolphin/Abliterated/Lexi/Stheno) — روابط فُحصت 200 بأحجام حقيقية
     {"tier": "unc", "name": "Dolphin 2.6 Mistral 7B DPO · Q4_K_M", "size": "≈4.4 GB",
      "url": "https://huggingface.co/TheBloke/dolphin-2.6-mistral-7B-dpo-GGUF/resolve/main/"
@@ -3220,7 +3219,7 @@ def _llm_fetch_release(build: str = "auto",
 
 
 # ─────────────────────────────────────────────────────────────
-# 【5.8】 خزائن مشفّرة (Vault) — v4.5: PBKDF2 + AES/Fernet أو HMAC-CTR مدمج
+# 【5.8】 خزائن مشفّرة (Vault) — PBKDF2 + AES/Fernet أو HMAC-CTR مدمج
 # ─────────────────────────────────────────────────────────────
 _VLT_EXT = ".uvault"
 _VLT_MAGIC_F = b"UVLT1F"          # صيغة Fernet (AES-128-CBC + HMAC) — إن توفّرت cryptography
@@ -3348,7 +3347,7 @@ def _vault_genpw(length: int = 16) -> str:
 
 
 # ─────────────────────────────────────────────────────────────
-# 【5.6】 وكيل الـ LLM (v4.9) — أدوات الإنترنت والجهاز، كلها بإذن المستخدم
+# 【5.6】 وكيل الـ LLM — أدوات الإنترنت والجهاز، كلها بإذن المستخدم
 #   • لا شيء يعمل إلا بعد تفعيل «وضع الوكيل» من صفحة الـ LLM.
 #   • كل إجراء يُعرض بتفاصيله الكاملة، ويطلب موافقة (مرة واحدة / للجلسة / رفض).
 #   • الكتابة وتشغيل الأوامر تسأل دائمًا ولا يمكن «السماح للجلسة» لهما.
@@ -3442,7 +3441,7 @@ def agent_fetch(url: str, max_bytes: int = 1_500_000, timeout: int = 20) -> Tupl
     u = urllib.parse.urlparse(url)
     if u.scheme not in ("http", "https") or not u.hostname:
         raise ValueError("only http:// and https:// URLs are allowed")
-    hdrs = {"User-Agent": f"Mozilla/5.0 (compatible; {APP_NAME}/{APP_VERSION})",
+    hdrs = {"User-Agent": f"Mozilla/5.0 (compatible; {APP_NAME})",
             "Accept": "text/html,application/json,text/plain;q=0.9,*/*;q=0.5"}
     if HAS_REQUESTS:
         with requests.get(url, headers=hdrs, timeout=timeout, stream=True) as r:
@@ -3801,15 +3800,15 @@ TOOL_BY_ID = {t.tid: t for t in TOOLS}
 DEFAULT_SETTINGS = {
     "lang": "en",
     "appearance": "Dark",
-    "llm_agent": dict(AGENT_DEFAULTS),   # ✦ v4.9: وضع الوكيل (مطفأ افتراضيًا)
-    "font_size": "Normal",       # ✦ v4.6: Small / Normal / Large / Extra large
+    "llm_agent": dict(AGENT_DEFAULTS),   # ✦ وضع الوكيل (مطفأ افتراضيًا)
+    "font_size": "Normal",       # ✦ Small / Normal / Large / Extra large
     "favorites": [],
     "recent": [],
     "collapsed": [],
-    "hint_scroll_shown": False,   # ✦ v4.0: هل عُرض تلميح "اسحب للأسفل" من قبل؟
+    "hint_scroll_shown": False,   # ✦ هل عُرض تلميح "اسحب للأسفل" من قبل؟
     "polybuild_path": "",
-    "llm_recent": [],             # ✦ v4.1: أحدث نماذج GGUF المستخدمة
-    "llm_params": {},             # ✦ v4.1: آخر إعدادات ضبط الـ LLM المحلي
+    "llm_recent": [],             # ✦ أحدث نماذج GGUF المستخدمة
+    "llm_params": {},             # ✦ آخر إعدادات ضبط الـ LLM المحلي
     "api_keys": {"openweather": "", "newsapi": "", "ipinfo": "",
                  "github": "", "openai": "", "openai_base": "https://api.openai.com/v1"},
     "presets": {},
@@ -3845,7 +3844,7 @@ class ToolboxApp(ctk.CTk):
         self._pb_proc: Optional[subprocess.Popen] = None
         self._ui_q: queue.Queue = queue.Queue()
         self._fav_btn: Optional[ctk.CTkButton] = None
-        # ✦ v4.0: حالة القائمة الجانبية القابلة للتمرير
+        # ✦ حالة القائمة الجانبية القابلة للتمرير
         self._search_after = None          # مؤقّت debounce للبحث
         self._nav_hint = None              # تلميح "اسحب للأسفل ↓" (أول تشغيل)
         self.nav_canvas = None             # الكانفاس الداخلي للقائمة
@@ -3853,21 +3852,21 @@ class ToolboxApp(ctk.CTk):
         self._ctk_wheel_native = True      # هل يدير CTk 6.x العجلة أصلًا؟
         self._nav_font_header = None       # خطوط مخزّنة لأداء أسرع
         self._nav_font_item = None
-        # ✦ v4.1: حالة الـ LLM المحلي — الموديل يبقى محمّلًا عند التنقل بين الأدوات
-        # ✦ v4.3: backend=local/server، url وproc لخادم llama.cpp المُشغَّل تلقائيًا
+        # ✦ حالة الـ LLM المحلي — الموديل يبقى محمّلًا عند التنقل بين الأدوات
+        # ✦ backend=local/server، url وproc لخادم llama.cpp المُشغَّل تلقائيًا
         self._llm: Dict[str, Any] = {"model": None, "path": "", "stop": None,
                                      "busy": False, "hist": [],
                                      "backend": "local", "url": "",
                                      "proc": None,
-                                     "allow": set()}        # ✦ v4.9: صلاحيات «للجلسة» (في الذاكرة فقط)
-        # ✦ v4.2: نظام الإضافات — tid → دالة بناء الصفحة من plugins/
+                                     "allow": set()}        # ✦ صلاحيات «للجلسة» (في الذاكرة فقط)
+        # ✦ نظام الإضافات — tid → دالة بناء الصفحة من plugins/
         self._plugin_pages: Dict[str, Callable] = {}
-        # ✦ v4.5: حالة الخزائن المشفّرة — تُمسح كلمة السر من الذاكرة عند القفل
+        # ✦ حالة الخزائن المشفّرة — تُمسح كلمة السر من الذاكرة عند القفل
         self._vault: Dict[str, Any] = {"name": None, "pw": "", "entries": [],
                                        "unlocked": False, "last_touch": 0.0,
                                        "edit_idx": None}
 
-        self.title(f"{APP_NAME} v{APP_VERSION}")
+        self.title(APP_NAME)
         self.geometry("1280x800")
         self.minsize(1000, 640)
         ctk.set_appearance_mode(self.settings.get("appearance", "Dark"))
@@ -3878,7 +3877,7 @@ class ToolboxApp(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.after(1200, self._tick_monitor)
         self.after(40, self._pump_ui)
-        # ✦ v4.2: ربط واجهة الإضافات ثم تحميل plugins/ ثم تحديث القائمة
+        # ✦ ربط واجهة الإضافات ثم تحميل plugins/ ثم تحديث القائمة
         try:
             toolbox_api._bind(self, TRANSLATIONS, _T_CACHE)
             self._load_plugins()
@@ -3906,7 +3905,7 @@ class ToolboxApp(ctk.CTk):
         top.grid_propagate(False)
         top.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(top, text=f"  ⬢  {APP_NAME}  v{APP_VERSION}",
+        ctk.CTkLabel(top, text=f"  ⬢  {APP_NAME}",
                      font=_font(size=16, weight="bold"),
                      text_color=CC("primary")).grid(row=0, column=0, padx=(12, 0), pady=10)
 
@@ -3940,11 +3939,11 @@ class ToolboxApp(ctk.CTk):
                                          placeholder_text=self.t("Search tools…"),
                                          height=_fs(30))
         self.search_entry.pack(fill="x", padx=8, pady=(6, 8))
-        # ✦ v4.0: debounce للبحث + Escape يمسح البحث
+        # ✦ debounce للبحث + Escape يمسح البحث
         self.search_entry.bind("<KeyRelease>", self._on_search_key)
         self.search_entry.bind("<Escape>", self._clear_search)
 
-        # ✦ v4.0: قائمة جانبية قابلة للتمرير — كل الأدوات متاحة حتى في النوافذ القصيرة
+        # ✦ قائمة جانبية قابلة للتمرير — كل الأدوات متاحة حتى في النوافذ القصيرة
         self.nav_holder = ctk.CTkScrollableFrame(
             self.sidebar, fg_color="transparent",
             scrollbar_button_color=CC("border"),
@@ -3966,12 +3965,12 @@ class ToolboxApp(ctk.CTk):
                          sticky="e" if self.rtl else "w", padx=12)
 
         self._rebuild_nav()
-        # ✦ v4.0: فحص overflow وعرض تلميح "اسحب للأسفل ↓" عند أول تشغيل فقط
+        # ✦ فحص overflow وعرض تلميح "اسحب للأسفل ↓" عند أول تشغيل فقط
         self.after(900, self._maybe_show_nav_hint)
 
     # ── بناء الشريط الجانبي (مع الطي والبحث والمفضلة والحديثة)
     def _rebuild_nav(self, scroll_to_top: bool = False):
-        # ✦ v4.0: حفظ موضع التمرير قبل الإعادة — لا قفز مزعج عند الطي/التوسيع
+        # ✦ حفظ موضع التمرير قبل الإعادة — لا قفز مزعج عند الطي/التوسيع
         frac = 0.0
         if not scroll_to_top and self.nav_canvas is not None:
             try:
@@ -3989,7 +3988,7 @@ class ToolboxApp(ctk.CTk):
             hay = f"{tool.title} {self.t(tool.title)} {tool.keywords} {tool.tid}".lower()
             if q in hay:
                 return True
-            # ✦ v4.0: بحث ضبابي عبر difflib — مطابقة كلمة-بكلمة ليتحمّل
+            # ✦ بحث ضبابي عبر difflib — مطابقة كلمة-بكلمة ليتحمّل
             #   الأخطاء المطبعية في استعلامات كلمة واحدة أو متعددة
             tokens = set(hay.split())
             for qw in q.split():
@@ -4023,19 +4022,19 @@ class ToolboxApp(ctk.CTk):
                 for tool in items:
                     self._nav_button(tool)
 
-        # ✦ v4.0: عدّاد نتائج البحث في شريط الحالة
+        # ✦ عدّاد نتائج البحث في شريط الحالة
         if q:
             self.set_status(self.t("{n} tools found").format(n=visible_count))
 
-        # ✦ v4.0: موضع التمرير — للأعلى عند البحث، أو الحفاظ عند الطي/التوسيع
+        # ✦ موضع التمرير — للأعلى عند البحث، أو الحفاظ عند الطي/التوسيع
         if scroll_to_top:
             self._nav_scroll_top()
         elif frac > 0:
             self._nav_scroll_restore(frac)
-        # ✦ v4.0: تحديث الإخفاء التلقائي لشريط التمرير بعد إعادة البناء
+        # ✦ تحديث الإخفاء التلقائي لشريط التمرير بعد إعادة البناء
         self.after(70, self._update_nav_scrollbar)
 
-    # ── v4.0: إدارة تمرير القائمة الجانبية ─────────────────────
+    # ── إدارة تمرير القائمة الجانبية ─────────────────────
     def _setup_nav_scroll(self):
         """تهيئة القائمة القابلة للتمرير: سماكة 6px + إخفاء تلقائي + خطوط مخزّنة."""
         try:
@@ -4236,7 +4235,7 @@ class ToolboxApp(ctk.CTk):
                                             self.toast(self.t("Done"), "ok")))
         self.bind("<Escape>", lambda e: self._close_palette())
         self.bind("<Control-f>", lambda e: self.search_entry.focus_set())
-        # ✦ v4.0: اختصارات إضافية
+        # ✦ اختصارات إضافية
         self.bind("<F1>", lambda e: self.show_tool("about"))
         self.bind("<Control-comma>", lambda e: self.show_tool("settings"))
         self.bind("<Control-d>", self._kbd_toggle_mode)
@@ -4433,11 +4432,11 @@ class ToolboxApp(ctk.CTk):
     def on_close(self):
         for flag in self._stop_flags.values():
             flag.set()
-        try:                                   # ✦ v4.1: إيقاف التوليد وتحرير موديل LLM
+        try:                                   # ✦ إيقاف التوليد وتحرير موديل LLM
             if self._llm.get("stop") is not None:
                 self._llm["stop"].set()
             self._llm["model"] = None
-            _pr = self._llm.get("proc")        # ✦ v4.3: إيقاف llama-server المُشغَّل تلقائيًا
+            _pr = self._llm.get("proc")        # ✦ إيقاف llama-server المُشغَّل تلقائيًا
             if _pr is not None and _pr.poll() is None:
                 _pr.terminate()
                 self._llm["proc"] = None
@@ -4641,7 +4640,7 @@ class ToolboxApp(ctk.CTk):
             return
         if self.current == "llm" and self._llm.get("stop") is not None:
             try:
-                self._llm["stop"].set()        # ✦ v4.1: مغادرة الصفحة توقف التوليد
+                self._llm["stop"].set()        # ✦ مغادرة الصفحة توقف التوليد
             except Exception:
                 pass
         self._cancel_timers()
@@ -4675,7 +4674,7 @@ class ToolboxApp(ctk.CTk):
         self.page.grid(row=1, column=0, sticky="nsew", padx=10, pady=8)
 
         builder = getattr(self, f"page_{tid}", None)
-        if builder is None and tid in self._plugin_pages:   # ✦ v4.2: صفحة إضافة
+        if builder is None and tid in self._plugin_pages:   # ✦ صفحة إضافة
             builder = self._make_plugin_builder(tid)
         try:
             if builder:
@@ -4690,7 +4689,7 @@ class ToolboxApp(ctk.CTk):
         self.set_status("")
 
     # ═════════════════════════════════════════════════════
-    # 【7.4】 v4.2: نظام الإضافات (plugins/)
+    # 【7.4】: نظام الإضافات (plugins/)
     # ═════════════════════════════════════════════════════
     def _load_plugins(self):
         """فحص مجلد plugins/ وتحميل كل *.py بأمان — خطأ أي إضافة معزول.
@@ -4885,7 +4884,7 @@ class ToolboxApp(ctk.CTk):
                 self.ram_hist = self.ram_hist[-60:]
         except Exception:
             pass
-        # ✦ v4.5: قفل تلقائي للخزنة بعد خمول _VAULT_LOCK_SECS
+        # ✦ قفل تلقائي للخزنة بعد خمول _VAULT_LOCK_SECS
         try:
             v = self._vault
             if (v.get("unlocked")
@@ -5080,7 +5079,7 @@ class ToolboxApp(ctk.CTk):
         self.show_tool(self.current)
 
     def page_about(self, p):
-        c = self.card(p, f"⬢ {APP_NAME} v{APP_VERSION}")
+        c = self.card(p, f"⬢ {APP_NAME}")
         deps = "\n".join([
             f"  customtkinter   ✓  {getattr(ctk, '__version__', '?')}",
             f"  psutil          {'✓' if HAS_PSUTIL else '✗  ' + MISSING_HINTS['psutil']}",
@@ -5394,7 +5393,7 @@ class ToolboxApp(ctk.CTk):
             u = url.get().strip()
             if not u.startswith("http"):
                 u = "https://" + u
-            req = urllib.request.Request(u, headers={"User-Agent": f"{APP_NAME}/{APP_VERSION}"},
+            req = urllib.request.Request(u, headers={"User-Agent": APP_NAME},
                                          method="GET")
             with urllib.request.urlopen(req, timeout=NET_TIMEOUT) as resp:
                 L = [f" Status : {resp.status} {resp.reason}",
@@ -6887,7 +6886,7 @@ class ToolboxApp(ctk.CTk):
             if not path:
                 return "cancelled"
             bundle = {
-                "app": APP_NAME, "version": APP_VERSION,
+                "app": APP_NAME,
                 "exported": _dt.datetime.now().isoformat(timespec="seconds"),
                 "settings": self.settings,
                 "tasks": jload(F_TASKS, []),
@@ -7610,7 +7609,7 @@ class ToolboxApp(ctk.CTk):
                           lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st))])
 
     # ═════════════════════════════════════════════════════
-    # 【17.5】 Local LLM — تشغيل نماذج GGUF محليًا (llama.cpp) — v4.1
+    # 【17.5】 Local LLM — تشغيل نماذج GGUF محليًا (llama.cpp) —
     # ═════════════════════════════════════════════════════
     def page_llm(self, p):
         llama_mod = _get_llama_cpp()          # استيراد كسول — اختياري تمامًا
@@ -7633,7 +7632,7 @@ class ToolboxApp(ctk.CTk):
         c1 = self.card(p, "🦙 " + self.t("Local LLM"))
         ctk.CTkLabel(c1, text=self.t("Run GGUF models locally — 100% offline"),
                      text_color=CC("muted")).pack(anchor=anch, padx=14)
-        # ── v4.3: اختيار المحرّك الخلفي — داخلي أو خادم llama.cpp (بلا مترجم)
+        # ── اختيار المحرّك الخلفي — داخلي أو خادم llama.cpp (بلا مترجم)
         BK_LOCAL = self.t("In-process (llama-cpp-python)")
         BK_SERVER = self.t("llama.cpp Server (running)")
         BK_AUTO = self.t("llama.cpp Server (auto-start)")
@@ -7645,18 +7644,36 @@ class ToolboxApp(ctk.CTk):
         bk = ctk.CTkOptionMenu(bk_row, width=340,
                                values=[BK_LOCAL, BK_SERVER, BK_AUTO])
         bk.set({"local": BK_LOCAL, "server": BK_SERVER,
-                "auto": BK_AUTO}.get(_pr_saved.get("backend", "local"),
-                                     BK_LOCAL))
+                "auto": BK_AUTO}.get(
+                    _pr_saved.get("backend", "local" if llama_mod is not None else "auto"),
+                    BK_LOCAL))
         bk.pack(side=side, padx=8)
 
+        # ✦ لوحة «llama-cpp-python غير مثبّت» تظهر فقط عند اختيار المحرّك الداخلي؛
+        #   أما وضع الخادم فلا يحتاجها إطلاقًا (تُستبدل بملاحظة هادئة).
+        warn_fr = ctk.CTkFrame(c1, fg_color="transparent")
+        note_fr = ctk.CTkFrame(c1, fg_color="transparent")
+        ur_ref: Dict[str, Any] = {}
+
+        def _bk_changed(*_a):
+            if llama_mod is not None:
+                return
+            is_local = BK_INV.get(bk.get(), "local") == "local"
+            for fr_ in (warn_fr, note_fr):
+                fr_.pack_forget()
+            kw: Dict[str, Any] = {"fill": "x"}
+            if "ur" in ur_ref:
+                kw["before"] = ur_ref["ur"]
+            (warn_fr if is_local else note_fr).pack(**kw)
+
         if llama_mod is None:
-            # ✦ v4.3: لوحة مساعدة التثبيت — تشرح خيارات الحل بالتفصيل (قابلة للنسخ)
-            hb = ctk.CTkTextbox(c1, height=180,
+            # ✦ لوحة مساعدة التثبيت — تشرح خيارات الحل بالتفصيل (قابلة للنسخ)
+            hb = ctk.CTkTextbox(warn_fr, height=180,
                                 font=_font(family="Courier", size=12))
             hb.pack(fill="x", padx=12, pady=(6, 2))
             hb.insert("1.0", _LLM_INSTALL_HELP)
             hb.configure(state="disabled")
-            hw = self.row(c1)
+            hw = self.row(warn_fr)
             ctk.CTkLabel(hw, text="⚠ llama-cpp-python "
                          + self.t("Not installed"),
                          text_color=CC("warn")).pack(side=side, padx=8)
@@ -7665,6 +7682,9 @@ class ToolboxApp(ctk.CTk):
                                            self.toast(self.t("Install help copied"),
                                                       "ok"))).pack(side=side,
                                                                    padx=4)
+            ctk.CTkLabel(note_fr, anchor=anch, text_color=CC("ok"),
+                         text="✓ " + self.t("Server mode — llama-cpp-python is not needed")
+                         ).pack(fill="x", padx=14, pady=(2, 2))
 
         ur = self.row(c1)
         ctk.CTkLabel(ur, text=self.t("Server URL"), width=_fs(130),
@@ -7673,6 +7693,9 @@ class ToolboxApp(ctk.CTk):
                             placeholder_text="http://127.0.0.1:8080")
         eurl.insert(0, str(_pr_saved.get("url", "") or ""))
         eurl.pack(side=side, padx=8)
+        ur_ref["ur"] = ur
+        bk.configure(command=_bk_changed)
+        _bk_changed()
 
         xr = self.row(c1)
         ctk.CTkLabel(xr, text=self.t("llama-server executable"), width=_fs(130),
@@ -7694,7 +7717,7 @@ class ToolboxApp(ctk.CTk):
         ctk.CTkButton(xr, text="📁 " + self.t("Browse"), width=120,
                       command=browse_exe).pack(side=side, padx=4)
 
-        # ✦ v4.4: خيار التنزيل التلقائي — llama-server من GitHub بضغطة واحدة
+        # ✦ خيار التنزيل التلقائي — llama-server من GitHub بضغطة واحدة
         bld_row = self.row(c1)
         ctk.CTkLabel(bld_row, text=self.t("Build"), width=_fs(130),
                      anchor=anch).pack(side=side)
@@ -7795,7 +7818,7 @@ class ToolboxApp(ctk.CTk):
         ep = ctk.CTkEntry(r1, width=470, placeholder_text=self.t("GGUF model file"))
         ep.pack(side=side, padx=(8, 0))
 
-        # ✦ v4.4/v4.5: تنزيل موديل GGUF جاهز من Hugging Face — قائمتان صغيرة/كبيرة
+        # ✦ تنزيل موديل GGUF جاهز من Hugging Face — قائمتان صغيرة/كبيرة
         MODEL_LABELS = {f"{m['name']} · {m['size']}": m for m in _LLM_MODELS}
         SMALL_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
                         if m.get("tier") == "small"]
@@ -7811,7 +7834,7 @@ class ToolboxApp(ctk.CTk):
         b_mdl = ctk.CTkButton(mdr, width=110, text="⬇ " + self.t("Model"))
         b_mdl.pack(side=side, padx=4)
 
-        # ✦ v4.5: الموديلات الكبيرة (7B حتى 70B) في قائمة مستقلة
+        # ✦ الموديلات الكبيرة (7B حتى 70B) في قائمة مستقلة
         mlr = self.row(c1)
         ctk.CTkLabel(mlr, text=self.t("Download large model"), width=_fs(130),
                      anchor=anch).pack(side=side)
@@ -7822,7 +7845,7 @@ class ToolboxApp(ctk.CTk):
         b_mdl_lg = ctk.CTkButton(mlr, width=110, text="⬇ " + self.t("Model"))
         b_mdl_lg.pack(side=side, padx=4)
 
-        # ✦ v4.7: الموديلات غير المحجوبة (Dolphin/Abliterated/Lexi/Stheno) — قائمة مستقلة
+        # ✦ الموديلات غير المحجوبة (Dolphin/Abliterated/Lexi/Stheno) — قائمة مستقلة
         UN_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
                      if m.get("tier") == "unc"]
         unr = self.row(c1)
@@ -7901,7 +7924,7 @@ class ToolboxApp(ctk.CTk):
         b_mdl_lg.configure(command=lambda: start_mdl_dl(omdl_lg, b_mdl_lg))
         b_mdl_unc.configure(command=lambda: start_mdl_dl(omdl_un, b_mdl_unc))
 
-        # ✦ v4.6: حالة وضع الرام المنخفضة — تُقرأ في refresh_info قبل بناء بطاقة الضبط
+        # ✦ حالة وضع الرام المنخفضة — تُقرأ في refresh_info قبل بناء بطاقة الضبط
         lr_state = {"lowram": str(_pr_saved.get("lowram", "0")) in
                     ("1", "true", "True", "1.0"),
                     "kv": str(_pr_saved.get("kv", "Auto") or "Auto")}
@@ -7915,7 +7938,7 @@ class ToolboxApp(ctk.CTk):
         def refresh_info(fp: str):
             """معلومات من رأس GGUF — بلا تحميل للموديل وبلا اعتمادات.
 
-            ✦ v4.6: يضيف كشف MoE (فحص الموترات المخزَّن مؤقتًا) وسطر تقدير
+            ✦ يضيف كشف MoE (فحص الموترات المخزَّن مؤقتًا) وسطر تقدير
             الرام حسب وضع Low RAM وسطر اقتراح تلقائي للموديلات الضخمة.
             """
             try:
@@ -8057,7 +8080,7 @@ class ToolboxApp(ctk.CTk):
         ftop = gfield(1, 1, self.t("Top P"), pr.get("topp", "0.9"))
         ftok = gfield(1, 2, self.t("Max tokens"), pr.get("maxtok", "512"))
         frp = gfield(2, 0, self.t("Repeat penalty"), pr.get("rp", "1.1"))
-        # ✦ v4.6: تكميم ذاكرة KV + وضع الرام المنخفضة — صف ثالث في الشبكة
+        # ✦ تكميم ذاكرة KV + وضع الرام المنخفضة — صف ثالث في الشبكة
         okv = gmenu(2, 1, self.t("KV cache"),
                     ["Auto", "f16", "q8_0", "q4_0"],
                     pr.get("kv", "Auto"), 90)
@@ -8067,7 +8090,7 @@ class ToolboxApp(ctk.CTk):
             sw_low.select()
         sw_low.grid(row=2, column=4, sticky="w", padx=(12, 4), pady=3)
 
-        # ✦ v4.6: موديل مسودة — فك تشفير تخميني: تسريع بلا أي تغيير في الدقة
+        # ✦ موديل مسودة — فك تشفير تخميني: تسريع بلا أي تغيير في الدقة
         dfr = self.row(c2)
         sw_draft = ctk.CTkSwitch(dfr, text="⚡ " + self.t("Draft model"),
                                  onvalue="1", offvalue="0")
@@ -8129,7 +8152,7 @@ class ToolboxApp(ctk.CTk):
                 pass
 
         def _lr_changed(*_a):
-            """✦ v4.6: تغيّر Low RAM/KV — حفظ + تحديث سطر التقدير فورًا."""
+            """✦ تغيّر Low RAM/KV — حفظ + تحديث سطر التقدير فورًا."""
             lr_state["lowram"] = str(sw_low.get()) == "1"
             lr_state["kv"] = okv.get()
             _save_llm_params(BK_INV.get(bk.get(), "local"))
@@ -8196,7 +8219,7 @@ class ToolboxApp(ctk.CTk):
                 pass
 
         def start_load():
-            # ✦ v4.1/v4.3: كل قراءات الواجهة هنا في الخيط الرئيسي — الخيط العامل بلا Tcl
+            # ✦ كل قراءات الواجهة هنا في الخيط الرئيسي — الخيط العامل بلا Tcl
             if self._llm["busy"]:
                 return
             bk_key = BK_INV.get(bk.get(), "local")
@@ -8227,7 +8250,7 @@ class ToolboxApp(ctk.CTk):
                         pass
                     return
                 port = max(1024, _i(eport.get(), 8765))
-                # ✦ v4.6: تكوين وسائط الرام المنخفضة/المسودة في الخيط الرئيسي
+                # ✦ تكوين وسائط الرام المنخفضة/المسودة في الخيط الرئيسي
                 low = str(sw_low.get()) == "1"
                 kv_sel = okv.get()
                 kv_eff = {"Auto": ("q8_0" if low else "f16")}.get(kv_sel,
@@ -8257,7 +8280,7 @@ class ToolboxApp(ctk.CTk):
                 except Exception:
                     pass
                 return
-            # ✦ v4.6: المسار الداخلي — mmap/دفعات صغيرة/تكميم KV بلا خادم
+            # ✦ المسار الداخلي — mmap/دفعات صغيرة/تكميم KV بلا خادم
             low = str(sw_low.get()) == "1"
             kv_sel = okv.get()
             kv_eff = {"Auto": ("q8_0" if low else "f16")}.get(kv_sel, kv_sel)
@@ -8272,7 +8295,7 @@ class ToolboxApp(ctk.CTk):
             if self._llm["model"] is not None:              # تحرير القديم أولًا
                 self._llm["model"] = None
                 gc.collect()
-            # ✦ v4.6: وضع الرام المنخفضة للمسار الداخلي — mmap بلا تثبيت
+            # ✦ وضع الرام المنخفضة للمسار الداخلي — mmap بلا تثبيت
             # صفحات + دفعات صغيرة + تكميم KV. (exps=CPU والمسودة في محرّك
             # الخادم فقط.) الإصدارات الأقدم تُسقط الوسائط تدريجيًا بلا انهيار.
             kw: Dict[str, Any] = {}
@@ -8317,7 +8340,7 @@ class ToolboxApp(ctk.CTk):
             _remember_model(fp)
             note = ""
             try:
-                # ✦ v4.6: llama-cpp-python لا يدعم exps=CPU — خادم أفضل لـ MoE
+                # ✦ llama-cpp-python لا يدعم exps=CPU — خادم أفضل لـ MoE
                 if str(sw_low.get()) == "1" and \
                         (_gguf_tensor_scan(fp).get("experts") or 0) > 0:
                     note = "  ·  ⓘ " + self.t(
@@ -8339,7 +8362,7 @@ class ToolboxApp(ctk.CTk):
             self._llm["path"] = ""
             self._llm["url"] = ""
             self._llm["backend"] = "local"
-            pr = self._llm.get("proc")     # ✦ v4.3: إيقاف الخادم المُشغَّل تلقائيًا
+            pr = self._llm.get("proc")     # ✦ إيقاف الخادم المُشغَّل تلقائيًا
             self._llm["proc"] = None
             if pr is not None and pr.poll() is None:
                 try:
@@ -8358,7 +8381,7 @@ class ToolboxApp(ctk.CTk):
             ("⬇️ " + self.t("Load model"), start_load),
             ("⏏️ " + self.t("Unload model"), do_unload)])
 
-        # ── v4.9: بطاقة وضع الوكيل — إنترنت وجهاز بإذن المستخدم
+        # ── بطاقة وضع الوكيل — إنترنت وجهاز بإذن المستخدم
         ag = self.card(p, "🛡 " + self.t("Agent mode — internet & device access"))
         ctk.CTkLabel(ag, anchor=anch, justify="left", text_color=CC("muted"), wraplength=720,
                      text=self.t("Off by default. When on, the model may ask to search the web, open pages, "
@@ -8411,7 +8434,7 @@ class ToolboxApp(ctk.CTk):
 
         # ── بطاقة 3: المحادثة (بث حي عبر _ui الآمنة للخيوط)
         c3 = self.card(p, "💬 " + self.t("Chat"))
-        # ✦ v4.5: مفتاح التفكير العميق — الإيقاف يخفي التفكير ويوقف توليده على الخادم
+        # ✦ مفتاح التفكير العميق — الإيقاف يخفي التفكير ويوقف توليده على الخادم
         thkr = self.row(c3)
         sw_think = ctk.CTkSwitch(thkr, text="🧠 " + self.t("Deep thinking"),
                                  onvalue="1", offvalue="0")
@@ -8468,7 +8491,7 @@ class ToolboxApp(ctk.CTk):
                       pmaxtok: str, prp: str, pthink: bool = True):
             """يعمل في خيط عامل — كل الوسائط قيم بايثون سادة، صفر استدعاءات Tcl.
 
-            ✦ v4.9: حلقة وكيل — إن فُعِّل «وضع الوكيل» قد يطلب النموذج أداة
+            ✦ حلقة وكيل — إن فُعِّل «وضع الوكيل» قد يطلب النموذج أداة
             (<tool_call>)، فتُعرض للمستخدم لموافقته ثم تُنفَّذ وتُعاد نتيجتها للنموذج.
             """
             backend = self._llm.get("backend", "local")
@@ -8502,14 +8525,14 @@ class ToolboxApp(ctk.CTk):
                     answer: List[str] = []      # الجواب الصافي (بلا تفكير)
                     shown_reason = False
                     if backend == "server":
-                        # ✦ v4.3: بث من خادم llama.cpp عبر HTTP — بلا llama-cpp-python
+                        # ✦ بث من خادم llama.cpp عبر HTTP — بلا llama-cpp-python
                         stream = _llm_http_stream(
                             url, cur,
                             max_tokens=max(16, _i(pmaxtok, 512)),
                             temperature=max(0.0, min(2.0, _f(ptemp, 0.7))),
                             top_p=max(0.0, min(1.0, _f(ptop, 0.9))),
                             repeat_penalty=max(1.0, _f(prp, 1.1)),
-                            disable_thinking=not pthink,     # ✦ v4.5: لا تولّد التفكير أصلًا
+                            disable_thinking=not pthink,     # ✦ لا تولّد التفكير أصلًا
                             stop_ev=stop_ev)
                     else:
                         stream = m.create_chat_completion(
@@ -8519,7 +8542,7 @@ class ToolboxApp(ctk.CTk):
                             top_p=max(0.0, min(1.0, _f(ptop, 0.9))),
                             repeat_penalty=max(1.0, _f(prp, 1.1)),
                             stream=True)
-                    # ✦ v4.5: إيقاف التفكير العميق = مرشّح بثّي + تجاهل reasoning_content
+                    # ✦ إيقاف التفكير العميق = مرشّح بثّي + تجاهل reasoning_content
                     tf = None if pthink else _ThinkFilter()
                     acc = ""                                # لاكتشاف </tool_call> مبكرًا
                     for ch in stream:
@@ -8603,7 +8626,7 @@ class ToolboxApp(ctk.CTk):
                 self._llm["stop"] = None
 
         def do_send():
-            # ✦ v4.1: القراءات كلها في الخيط الرئيسي ثم تُمرَّر كقيم للخيط العامل
+            # ✦ القراءات كلها في الخيط الرئيسي ثم تُمرَّر كقيم للخيط العامل
             if self._llm["busy"]:
                 return
             ready = (self._llm["model"] is not None
@@ -8623,7 +8646,7 @@ class ToolboxApp(ctk.CTk):
             sp = fsys.get("1.0", "end").strip()
             ptemp, ptop = ftmp.get(), ftop.get()
             pmaxtok, prp = ftok.get(), frp.get()
-            pthink = str(sw_think.get()) == "1"          # ✦ v4.5: التفكير العميق؟
+            pthink = str(sw_think.get()) == "1"          # ✦ التفكير العميق؟
             inp.delete("1.0", "end")
             self.run_async(
                 lambda: work_send(q, sp, ptemp, ptop, pmaxtok, prp, pthink),
@@ -8668,7 +8691,7 @@ class ToolboxApp(ctk.CTk):
              lambda: self.copy_text(transcript_text()))])
 
     # ═════════════════════════════════════════════════════
-    # 【17.5】 v4.5: الخزائن المشفّرة (Vault) — PBKDF2 + Fernet/HMAC-CTR
+    # 【17.5】: الخزائن المشفّرة (Vault) — PBKDF2 + Fernet/HMAC-CTR
     # ═════════════════════════════════════════════════════
     def page_vault(self, p):
         side = "right" if self.rtl else "left"
