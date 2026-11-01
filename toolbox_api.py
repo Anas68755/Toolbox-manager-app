@@ -143,6 +143,14 @@ def add_translations(mapping_by_lang: Dict[str, Dict[str, str]]) -> None:
 
 # ═══════════════════════ سلوك التطبيق ═══════════════════════════════
 
+def font(size: int = 13, **kw: Any) -> Any:
+    """خط CTkFont مُقاس تلقائيًا حسب إعداد «حجم الخط» في التطبيق.
+
+    مثال:  ctk.CTkLabel(parent, text="…", font=font(14, weight="bold"))
+    """
+    return _app().font(size=size, **kw)
+
+
 def t(key: str) -> str:
     """ترجمة مفتاح إلى لغة واجهة التطبيق الحالية."""
     try:

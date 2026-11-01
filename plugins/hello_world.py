@@ -101,7 +101,7 @@ def build(api, parent):
     # إمكانية الخلط مع عناصر customtkinter مباشرة عند الحاجة
     r = row(parent)
     ctk.CTkLabel(r, text="🔌 v4.2 • API 1.0",
-                 font=ctk.CTkFont(size=12), text_color="#9a9aa8").pack(
+                 font=api.font(12), text_color="#9a9aa8").pack(
         anchor="e" if api.is_rtl() else "w")
 
     statuslabel(parent).configure(

@@ -1,1 +1,7 @@
-
+customtkinter>=5.2.0
+psutil
+requests
+qrcode[pil]
+Pillow
+tzdata
+cryptography

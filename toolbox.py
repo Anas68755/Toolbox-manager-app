@@ -179,7 +179,7 @@ MISSING_HINTS = {
 # 【2】 الثوابت والمسارات
 # ─────────────────────────────────────────────────────────────
 APP_NAME = "Ultimate Toolbox Pro"
-APP_VERSION = "4.7.0"
+APP_VERSION = "4.8.0"
 IS_FROZEN = bool(getattr(sys, "frozen", False))
 # APP_DIR : مجلد بيانات المستخدم (بجانب الـ exe عند التجميع، وإلا بجانب السكربت)
 # RES_DIR : مجلد الموارد المضمّنة (_MEIPASS المؤقت في وضع onefile)
@@ -263,6 +263,23 @@ def _base_theme_dict() -> Dict[str, Any]:
     except Exception:
         pass
     return {}
+
+
+# ── حجم الخط: معامل عام يُقرأ من الإعدادات (font_scale) قبل بناء الواجهة
+FONT_SCALES = {"Small": 1.0, "Normal": 1.15, "Large": 1.3, "Extra large": 1.5}
+FONT_SCALE = 1.15
+
+
+def _fs(size: float) -> int:
+    """يضرب حجم الخط في المعامل العام."""
+    return max(8, int(round(size * FONT_SCALE)))
+
+
+def _font(**kw):
+    """بديل ctk.CTkFont يطبّق معامل الحجم العام تلقائيًا."""
+    if "size" in kw:
+        kw["size"] = _fs(kw["size"])
+    return ctk.CTkFont(**kw)
 
 
 def build_theme_file(font_family: str = "Roboto") -> str:
@@ -363,7 +380,7 @@ def build_theme_file(font_family: str = "Roboto") -> str:
 
     # الخطوط: Tajawal للعربية/الأردية، Roboto لغيرها
     th.setdefault("CTkFont", {})
-    for osname, size in (("macOS", 13), ("Windows", 13), ("Linux", 13)):
+    for osname, size in (("macOS", _fs(13)), ("Windows", _fs(13)), ("Linux", _fs(13))):
         th["CTkFont"][osname] = {"family": font_family, "size": size, "weight": "normal"}
 
     try:
@@ -427,7 +444,9 @@ _AR = {
     "Port Scanner": "فاحص المنافذ", "HTTP Client": "عميل HTTP",
     "Weather": "الطقس", "Currency": "العملات", "Translate": "الترجمة",
     "GeoIP": "تحديد الموقع", "GitHub": "GitHub", "Crypto Prices": "أسعار العملات الرقمية",
-    "News": "الأخبار", "URL Shortener": "اختصار الروابط", "Fun APIs": "خدمات ترفيهية",
+    "News": "الأخبار", "URL Shortener": "اختصار الروابط", "Fun APIs": "خدمات ترفيهية", "Dictionary": "القاموس", "Countries": "الدول",
+    "Public Holidays": "العطل الرسمية", "Wikipedia": "ويكيبيديا", "Books": "الكتب",
+    "ISS Tracker": "تتبع محطة الفضاء",
     "AI Assistant": "المساعد الذكي", "Fake Data": "بيانات وهمية",
     "Random Picker": "اختيار عشوائي", "Lorem Ipsum": "نص تجريبي",
     # مفاتيح v3.2
@@ -1889,12 +1908,23 @@ def jload(path: str, default: Any) -> Any:
 
 
 def jsave(path: str, data: Any) -> bool:
-    """كتابة JSON بأمان (داخل مجلد التطبيق فقط)."""
+    """كتابة JSON بأمان وبشكل ذرّي (ملف مؤقت ثم استبدال) — لا يفسد الملف عند انقطاع الكتابة."""
+    tmp = path + ".tmp"
     try:
-        with open(path, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except Exception:
+                pass
+        os.replace(tmp, path)
         return True
     except Exception:
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
         return False
 
 
@@ -1936,22 +1966,39 @@ def fmt_mmss(sec: float) -> str:
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
 
 
-def next_birthday_days(a: _dt.date, years: int) -> int:
-    """أيام حتى المناسبة القادمة — آمنة لسنة 29 فبراير في سنوات غير كبيسة."""
-    try:
-        nb = a.replace(year=a.year + years + 1)
-    except ValueError:                      # 29 فبراير في سنة غير كبيسة
-        nb = a.replace(year=a.year + years + 1, day=28)
-    return (nb - _dt.date.today()).days
+def next_birthday_days(a: _dt.date, years: Optional[int] = None) -> int:
+    """أيام حتى عيد الميلاد القادم بالنسبة لتاريخ اليوم (إصلاح: كان يعتمد على التاريخ الثاني).
+
+    آمنة لـ 29 فبراير في السنوات غير الكبيسة (تُعامَل كـ 28 فبراير).
+    """
+    today = _dt.date.today()
+    if a > today:
+        return (a - today).days
+
+    def at(yr: int) -> _dt.date:
+        try:
+            return a.replace(year=yr)
+        except ValueError:                  # 29 فبراير في سنة غير كبيسة
+            return a.replace(year=yr, day=28)
+
+    nb = at(today.year)
+    if nb < today:
+        nb = at(today.year + 1)
+    return (nb - today).days
 
 
 # ── حاسبة آمنة بدون eval — تعتمد ast
+def _bad_arg(name: str):
+    raise ValueError(f"{name}: argument out of range (0..3000)")
+
+
 _ALLOWED_FUNCS = {
     "sqrt": math.sqrt, "abs": abs, "round": round, "sin": math.sin,
     "cos": math.cos, "tan": math.tan, "asin": math.asin, "acos": math.acos,
     "atan": math.atan, "log": math.log, "log10": math.log10, "log2": math.log2,
     "exp": math.exp, "floor": math.floor, "ceil": math.ceil, "pow": math.pow,
-    "factorial": math.factorial, "degrees": math.degrees, "radians": math.radians,
+    "factorial": lambda n: math.factorial(n) if 0 <= n <= 3000 else _bad_arg("factorial"),
+    "degrees": math.degrees, "radians": math.radians,
     "min": min, "max": max, "hypot": math.hypot,
 }
 _ALLOWED_NAMES = {"pi": math.pi, "e": math.e, "tau": math.tau, "inf": math.inf}
@@ -2226,18 +2273,18 @@ def fake_person() -> Dict[str, str]:
 UNITS: Dict[str, Dict[str, float]] = {
     "Length": {"mm": 0.001, "cm": 0.01, "m": 1, "km": 1000, "inch": 0.0254,
                "ft": 0.3048, "yd": 0.9144, "mile": 1609.344, "nmi": 1852},
-    "Weight": {"mg": 1e-6, "g": 0.001, "kg": 1, "ton": 1000, "oz": 0.0283495,
-               "lb": 0.453592, "stone": 6.35029},
+    "Weight": {"mg": 1e-6, "g": 0.001, "kg": 1, "ton": 1000, "oz": 0.028349523125,
+               "lb": 0.45359237, "stone": 6.35029318},
     "Data":   {"bit": 0.125, "B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3,
                "TB": 1024**4, "PB": 1024**5},
-    "Speed":  {"m/s": 1, "km/h": 0.277778, "mph": 0.44704, "knot": 0.514444,
+    "Speed":  {"m/s": 1, "km/h": 1 / 3.6, "mph": 0.44704, "knot": 1852 / 3600,
                "ft/s": 0.3048},
     "Time":   {"ms": 0.001, "s": 1, "min": 60, "h": 3600, "day": 86400,
                "week": 604800, "year": 31557600},
-    "Area":   {"mm²": 1e-6, "cm²": 1e-4, "m²": 1, "km²": 1e6, "ft²": 0.092903,
-               "acre": 4046.86, "hectare": 10000},
-    "Volume": {"ml": 0.001, "l": 1, "m³": 1000, "cup": 0.236588,
-               "gal(US)": 3.78541, "pint": 0.473176},
+    "Area":   {"mm²": 1e-6, "cm²": 1e-4, "m²": 1, "km²": 1e6, "ft²": 0.09290304,
+               "acre": 4046.8564224, "hectare": 10000},
+    "Volume": {"ml": 0.001, "l": 1, "m³": 1000, "cup": 0.2365882365,
+               "gal(US)": 3.785411784, "pint": 0.473176473},
 }
 TEMP_UNITS = ["°C", "°F", "K"]
 
@@ -3249,6 +3296,8 @@ def vault_decrypt(blob: bytes, password: str) -> bytes:
         if blob.startswith(_VLT_MAGIC_F):
             off = len(_VLT_MAGIC_F)
             iters = int.from_bytes(blob[off:off + 4], "big")
+            if not (1000 <= iters <= 20_000_000):
+                raise ValueError("corrupted vault file")
             salt = blob[off + 4:off + 20]
             tlen = int.from_bytes(blob[off + 20:off + 24], "big")
             token = blob[off + 24:off + 24 + tlen]
@@ -3263,6 +3312,8 @@ def vault_decrypt(blob: bytes, password: str) -> bytes:
         if blob.startswith(_VLT_MAGIC_H):
             off = len(_VLT_MAGIC_H)
             iters = int.from_bytes(blob[off:off + 4], "big")
+            if not (1000 <= iters <= 20_000_000):
+                raise ValueError("corrupted vault file")
             salt = blob[off + 4:off + 20]
             iv = blob[off + 20:off + 36]
             tag = blob[off + 36:off + 68]
@@ -3372,6 +3423,12 @@ TOOLS: List[Tool] = [
     Tool("shorten", "URL Shortener", "APIs", "🔗", "is.gd tiny"),
     Tool("fun", "Fun APIs", "APIs", "🎲", "joke advice cat activity"),
     Tool("ai", "AI Assistant", "APIs", "🤖", "openai chat llm"),
+    Tool("dictionary", "Dictionary", "APIs", "📖", "define word meaning synonyms"),
+    Tool("countries", "Countries", "APIs", "🌐", "country capital population flag currency"),
+    Tool("holidays", "Public Holidays", "APIs", "🎉", "holiday calendar nager"),
+    Tool("wiki", "Wikipedia", "APIs", "📚", "article summary encyclopedia"),
+    Tool("books", "Books", "APIs", "📕", "openlibrary author isbn"),
+    Tool("iss", "ISS Tracker", "APIs", "🛰", "space station orbit position"),
     # Data
     Tool("fake", "Fake Data", "Data", "🧪", "mock names emails"),
     Tool("picker", "Random Picker", "Data", "🎯", "choose shuffle lottery"),
@@ -3385,6 +3442,7 @@ TOOL_BY_ID = {t.tid: t for t in TOOLS}
 DEFAULT_SETTINGS = {
     "lang": "en",
     "appearance": "Dark",
+    "font_size": "Normal",       # ✦ v4.6: Small / Normal / Large / Extra large
     "favorites": [],
     "recent": [],
     "collapsed": [],
@@ -3407,7 +3465,10 @@ class ToolboxApp(ctk.CTk):
     # ── الإقلاع ────────────────────────────────────────────
     def __init__(self):
         super().__init__()
-        self.settings: Dict[str, Any] = {**DEFAULT_SETTINGS, **jload(F_SETTINGS, {})}
+        _saved = jload(F_SETTINGS, {})
+        if not isinstance(_saved, dict):              # ملف إعدادات تالف
+            _saved = {}
+        self.settings: Dict[str, Any] = {**DEFAULT_SETTINGS, **_saved}
         for k, v in DEFAULT_SETTINGS.items():          # دمج المفاتيح الناقصة
             if isinstance(v, dict):
                 self.settings[k] = {**v, **(self.settings.get(k) or {})}
@@ -3478,27 +3539,27 @@ class ToolboxApp(ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
 
         # الشريط العلوي
-        top = ctk.CTkFrame(self, height=52, corner_radius=0,
+        top = ctk.CTkFrame(self, height=_fs(45), corner_radius=0,
                            fg_color=CC("surface2"))
         top.grid(row=0, column=0, columnspan=2, sticky="ew")
         top.grid_propagate(False)
         top.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(top, text=f"  ⬢  {APP_NAME}  v{APP_VERSION}",
-                     font=ctk.CTkFont(size=16, weight="bold"),
+                     font=_font(size=16, weight="bold"),
                      text_color=CC("primary")).grid(row=0, column=0, padx=(12, 0), pady=10)
 
-        self.title_label = ctk.CTkLabel(top, text="", font=ctk.CTkFont(size=14))
+        self.title_label = ctk.CTkLabel(top, text="", font=_font(size=14))
         self.title_label.grid(row=0, column=1, sticky="e" if self.rtl else "w", padx=16)
 
         right = ctk.CTkFrame(top, fg_color="transparent")
         right.grid(row=0, column=2, padx=10)
-        ctk.CTkButton(right, text="⌘ Ctrl+K", width=90, height=30,
+        ctk.CTkButton(right, text="⌘ Ctrl+K", width=_fs(80), height=_fs(26),
                       fg_color=CC("surface"), hover_color=CC("border"),
                       text_color=CC("muted"),
                       command=self.open_palette).pack(side="left", padx=4)
         self.lang_menu = ctk.CTkOptionMenu(
-            right, width=120, height=30,
+            right, width=120, height=_fs(26),
             values=[LANG_NAMES[c] for c in LANG_NAMES],
             command=self._on_lang_change)
         self.lang_menu.set(LANG_NAMES.get(self.lang, "English"))
@@ -3509,14 +3570,14 @@ class ToolboxApp(ctk.CTk):
             self.mode_switch.select()
         self.mode_switch.pack(side="left", padx=4)
 
-        self.sidebar = ctk.CTkFrame(self, width=260, corner_radius=0,
+        self.sidebar = ctk.CTkFrame(self, width=_fs(226), corner_radius=0,
                                     fg_color=CC("surface"))
         self.sidebar.grid(row=1, column=0, sticky="ns")
         self.sidebar.grid_propagate(False)
 
         self.search_entry = ctk.CTkEntry(self.sidebar,
                                          placeholder_text=self.t("Search tools…"),
-                                         height=34)
+                                         height=_fs(30))
         self.search_entry.pack(fill="x", padx=8, pady=(6, 8))
         # ✦ v4.0: debounce للبحث + Escape يمسح البحث
         self.search_entry.bind("<KeyRelease>", self._on_search_key)
@@ -3537,9 +3598,9 @@ class ToolboxApp(ctk.CTk):
         self.content_wrap.grid_columnconfigure(0, weight=1)
 
         # شريط الحالة
-        self.status = ctk.CTkLabel(self, text="", height=24,
+        self.status = ctk.CTkLabel(self, text="", height=_fs(21),
                                    text_color=CC("muted"),
-                                   font=ctk.CTkFont(size=11))
+                                   font=_font(size=11))
         self.status.grid(row=2, column=0, columnspan=2,
                          sticky="e" if self.rtl else "w", padx=12)
 
@@ -3621,8 +3682,8 @@ class ToolboxApp(ctk.CTk):
             self.nav_scrollbar = getattr(self.nav_holder, "_scrollbar", None)
             self._ctk_wheel_native = hasattr(self.nav_holder, "_mouse_wheel_all")
             # خطوط مخزّنة: توفير ~70 إنشاء خط في كل إعادة بناء
-            self._nav_font_header = ctk.CTkFont(size=12, weight="bold")
-            self._nav_font_item = ctk.CTkFont(size=13)
+            self._nav_font_header = _font(size=12, weight="bold")
+            self._nav_font_item = _font(size=13)
             try:
                 if self.nav_scrollbar is not None:
                     self.nav_scrollbar.configure(width=6)      # شريط رفيع 6px
@@ -3753,9 +3814,9 @@ class ToolboxApp(ctk.CTk):
                 return
             self._nav_hint = ctk.CTkLabel(
                 self.sidebar, text=self.t("Scroll for more ↓"),
-                height=28, corner_radius=8,
+                height=_fs(24), corner_radius=8,
                 fg_color=CC("primary"), text_color="#ffffff",
-                font=ctk.CTkFont(size=12, weight="bold"))
+                font=_font(size=12, weight="bold"))
             self._nav_hint.place(relx=0.5, rely=0.96, anchor="s", relwidth=0.72)
             self.settings["hint_scroll_shown"] = True
             self.save_settings()
@@ -3778,7 +3839,7 @@ class ToolboxApp(ctk.CTk):
 
     def _nav_header(self, text: str, cmd: Optional[Callable] = None):
         b = ctk.CTkButton(self.nav_holder, text=text, anchor="e" if self.rtl else "w",
-                          height=28, fg_color="transparent",
+                          height=_fs(24), fg_color="transparent",
                           hover_color=CC("surface2"), text_color=CC("muted"),
                           font=self._nav_font_header,
                           command=cmd or (lambda: None))
@@ -3789,7 +3850,7 @@ class ToolboxApp(ctk.CTk):
         active = tool.tid == self.current
         b = ctk.CTkButton(
             self.nav_holder, text=f"  {tool.icon}  {self.t(tool.title)}",
-            anchor="e" if self.rtl else "w", height=32,
+            anchor="e" if self.rtl else "w", height=_fs(28),
             fg_color=CC("primary") if active else "transparent",
             hover_color=CC("primary_h") if active else CC("surface2"),
             text_color=("#ffffff" if active else C("text")),
@@ -3850,6 +3911,25 @@ class ToolboxApp(ctk.CTk):
     def save_settings(self):
         jsave(F_SETTINGS, self.settings)
 
+    def font(self, **kw):
+        """خط مُقاس حسب إعداد حجم الخط — للإضافات (plugins) عبر toolbox_api.font()."""
+        return _font(**kw)
+
+    def on_close_for_restart(self):
+        """حفظ ثم إعادة تشغيل التطبيق نفسه (لتطبيق حجم الخط)."""
+        try:
+            self.save_settings()
+            self.on_close()
+        finally:
+            try:
+                if IS_FROZEN:
+                    os.execv(sys.executable, [sys.executable])
+                else:
+                    os.execv(sys.executable,
+                             [sys.executable, os.path.abspath(sys.argv[0])] + sys.argv[1:])
+            except Exception:
+                pass
+
     def on_close(self):
         for flag in self._stop_flags.values():
             flag.set()
@@ -3899,7 +3979,7 @@ class ToolboxApp(ctk.CTk):
         f = ctk.CTkFrame(self, fg_color=colors.get(kind, CC("surface2")),
                          corner_radius=8, border_width=1, border_color=CC("border"))
         ctk.CTkLabel(f, text=msg, text_color=("#111111", "#ffffff") if kind != "info" else CC("text"),
-                     font=ctk.CTkFont(size=12)).pack(padx=14, pady=8)
+                     font=_font(size=12)).pack(padx=14, pady=8)
         idx = len(self._toasts)
         f.place(relx=0.99, rely=0.96 - idx * 0.07, anchor="se")
         self._toasts.append(f)
@@ -3918,7 +3998,7 @@ class ToolboxApp(ctk.CTk):
         win.title(title)
         win.geometry("460x240")
         win.transient(self)
-        ctk.CTkLabel(win, text=title, font=ctk.CTkFont(size=16, weight="bold"),
+        ctk.CTkLabel(win, text=title, font=_font(size=16, weight="bold"),
                      text_color=CC("primary")).pack(pady=(16, 6))
         box = ctk.CTkTextbox(win, height=120)
         box.pack(fill="both", expand=True, padx=16, pady=6)
@@ -3999,7 +4079,7 @@ class ToolboxApp(ctk.CTk):
         win.geometry("560x420")
         win.transient(self)
         entry = ctk.CTkEntry(win, placeholder_text=self.t("Search tools…"), height=40,
-                             font=ctk.CTkFont(size=15))
+                             font=_font(size=15))
         entry.pack(fill="x", padx=12, pady=12)
         listf = ctk.CTkScrollableFrame(win, fg_color="transparent")
         listf.pack(fill="both", expand=True, padx=12, pady=(0, 12))
@@ -4022,7 +4102,7 @@ class ToolboxApp(ctk.CTk):
                 pal["tids"].append(tool.tid)
                 b = ctk.CTkButton(
                     listf, text=f"{tool.icon}  {self.t(tool.title)}   ·   {self.t(tool.section)}",
-                    anchor="e" if self.rtl else "w", height=32, fg_color="transparent",
+                    anchor="e" if self.rtl else "w", height=_fs(28), fg_color="transparent",
                     hover_color=CC("primary"), text_color=CC("text"),
                     command=lambda tid=tool.tid: (self._close_palette(), self.show_tool(tid))
                 )
@@ -4082,10 +4162,10 @@ class ToolboxApp(ctk.CTk):
         self.content_wrap.grid_rowconfigure(1, weight=1)
         side = "right" if self.rtl else "left"
         ctk.CTkLabel(header, text=f"{tool.icon}  {self.t(tool.title)}",
-                     font=ctk.CTkFont(size=22, weight="bold")).pack(side=side)
+                     font=_font(size=22, weight="bold")).pack(side=side)
         fav = tid in self.settings.get("favorites", [])
         self._fav_btn = ctk.CTkButton(header, text="⭐" if fav else "☆", width=40,
-                                      height=30, fg_color="transparent",
+                                      height=_fs(26), fg_color="transparent",
                                       hover_color=CC("surface2"),
                                       text_color=CC("warn") if fav else CC("muted"),
                                       command=lambda: self.toggle_fav(tid))
@@ -4183,7 +4263,7 @@ class ToolboxApp(ctk.CTk):
                 c = self.card(parent, f"⚠ {self.t('Plugin crashed')}")
                 ctk.CTkLabel(c, text=traceback.format_exc()[-1600:],
                              justify="left", text_color=CC("err"),
-                             font=ctk.CTkFont(family="Courier", size=11),
+                             font=_font(family="Courier", size=11),
                              wraplength=760).pack(anchor="w", padx=14,
                                                   pady=(0, 12))
         return _build
@@ -4221,7 +4301,7 @@ class ToolboxApp(ctk.CTk):
                          border_width=1, border_color=CC("border"))
         f.pack(fill="x", padx=8, pady=8)
         if title:
-            ctk.CTkLabel(f, text=title, font=ctk.CTkFont(size=14, weight="bold"),
+            ctk.CTkLabel(f, text=title, font=_font(size=14, weight="bold"),
                          text_color=CC("primary")).pack(
                 anchor="e" if self.rtl else "w", padx=14, pady=(12, 0))
         return f
@@ -4235,7 +4315,7 @@ class ToolboxApp(ctk.CTk):
               show: Optional[str] = None) -> ctk.CTkEntry:
         r = self.row(parent)
         side = "right" if self.rtl else "left"
-        ctk.CTkLabel(r, text=label, width=150,
+        ctk.CTkLabel(r, text=label, width=_fs(130),
                      anchor="e" if self.rtl else "w").pack(side=side)
         e = ctk.CTkEntry(r, width=width, show=show)
         e.pack(side=side, padx=8)
@@ -4248,7 +4328,7 @@ class ToolboxApp(ctk.CTk):
                command: Optional[Callable] = None) -> ctk.CTkOptionMenu:
         r = self.row(parent)
         side = "right" if self.rtl else "left"
-        ctk.CTkLabel(r, text=label, width=150,
+        ctk.CTkLabel(r, text=label, width=_fs(130),
                      anchor="e" if self.rtl else "w").pack(side=side)
         m = ctk.CTkOptionMenu(r, values=values or ["-"], width=width, command=command)
         m.set(default or (values[0] if values else "-"))
@@ -4256,7 +4336,7 @@ class ToolboxApp(ctk.CTk):
         return m
 
     def textbox(self, parent, height: int = 160, text: str = "") -> ctk.CTkTextbox:
-        tb = ctk.CTkTextbox(parent, height=height, font=ctk.CTkFont(family="Courier", size=12))
+        tb = ctk.CTkTextbox(parent, height=height, font=_font(family="Courier", size=12))
         tb.pack(fill="both", expand=True, padx=12, pady=8)
         if text:
             tb.insert("1.0", text)
@@ -4266,13 +4346,13 @@ class ToolboxApp(ctk.CTk):
         r = self.row(parent)
         side = "right" if self.rtl else "left"
         for text, cmd in items:
-            ctk.CTkButton(r, text=text, command=cmd, height=32,
-                          width=max(90, 10 * len(text))).pack(side=side, padx=4)
+            ctk.CTkButton(r, text=text, command=cmd, height=_fs(28),
+                          width=max(_fs(80), _fs(9) * len(text))).pack(side=side, padx=4)
         return r
 
     def statuslabel(self, parent) -> ctk.CTkLabel:
         l = ctk.CTkLabel(parent, text="", text_color=CC("muted"),
-                         font=ctk.CTkFont(size=12), justify="left")
+                         font=_font(size=12), justify="left")
         l.pack(anchor="e" if self.rtl else "w", padx=14, pady=(0, 10))
         return l
 
@@ -4344,8 +4424,8 @@ class ToolboxApp(ctk.CTk):
             c.pack(side="right" if self.rtl else "left", fill="both",
                    expand=True, padx=6)
             ctk.CTkLabel(c, text=f"{icon}  {key}", text_color=CC("muted"),
-                         font=ctk.CTkFont(size=12)).pack(pady=(12, 2))
-            val = ctk.CTkLabel(c, text="—", font=ctk.CTkFont(size=26, weight="bold"),
+                         font=_font(size=12)).pack(pady=(12, 2))
+            val = ctk.CTkLabel(c, text="—", font=_font(size=26, weight="bold"),
                                text_color=CC("primary"))
             val.pack()
             bar = ctk.CTkProgressBar(c, height=8)
@@ -4365,7 +4445,7 @@ class ToolboxApp(ctk.CTk):
 
         info = self.card(p, "🖥️ " + self.t("System Information"))
         self._dash_info = ctk.CTkLabel(info, text="", justify="left",
-                                       font=ctk.CTkFont(family="Courier", size=12))
+                                       font=_font(family="Courier", size=12))
         self._dash_info.pack(anchor="e" if self.rtl else "w", padx=16, pady=(4, 14))
 
         self._refresh_dashboard()
@@ -4412,7 +4492,7 @@ class ToolboxApp(ctk.CTk):
             y = 10 + i * (h - 30) / 4
             cv.create_line(0, y, w, y, fill=C("border"))
             cv.create_text(24, y - 8, text=f"{100 - i * 25}%",
-                           fill=C("muted"), font=("TkDefaultFont", 8))
+                           fill=C("muted"), font=("TkDefaultFont", _fs(8)))
 
         def plot(data, color):
             if len(data) < 2:
@@ -4435,6 +4515,23 @@ class ToolboxApp(ctk.CTk):
         self.option(c, self.t("Theme"), ["Dark", "Light", "System"],
                     self.settings.get("appearance", "Dark"),
                     command=self._set_mode)
+
+        fz = self.card(p, "🔠 " + self.t("Font size"))
+        cur_fz = self.settings.get("font_size", "Normal")
+        if cur_fz not in FONT_SCALES:
+            cur_fz = "Normal"
+        fz_opt = self.option(fz, self.t("Font size"), list(FONT_SCALES), cur_fz)
+
+        def apply_font(restart: bool):
+            self.settings["font_size"] = fz_opt.get()
+            self.save_settings()
+            if not restart:
+                self.toast(self.t("Restart the app to apply the new font size."), "info", 4200)
+                return
+            self.on_close_for_restart()
+
+        self.buttons(fz, [(self.t("Save"), lambda: apply_font(False)),
+                          ("🔄 " + self.t("Save & restart"), lambda: apply_font(True))])
 
         k = self.card(p, "🔑 API Keys")
         ctk.CTkLabel(k, text="🔒 " + self.t("Keys are stored locally only."),
@@ -4472,7 +4569,7 @@ class ToolboxApp(ctk.CTk):
 
         d = self.card(p, "📁 " + self.t("Data"))
         ctk.CTkLabel(d, text=APP_DIR, text_color=CC("muted"),
-                     font=ctk.CTkFont(family="Courier", size=11)).pack(anchor="w", padx=14, pady=(0, 10))
+                     font=_font(family="Courier", size=11)).pack(anchor="w", padx=14, pady=(0, 10))
         self.buttons(d, [("📂 " + self.t("Browse"),
                           lambda: webbrowser.open("file://" + APP_DIR))])
 
@@ -4492,7 +4589,7 @@ class ToolboxApp(ctk.CTk):
             f"  Pillow          {'✓' if HAS_PIL else '✗  ' + MISSING_HINTS['Pillow']}",
             f"  zoneinfo        {'✓' if HAS_ZONEINFO else '✗'}",
         ])
-        ctk.CTkLabel(c, justify="left", font=ctk.CTkFont(family="Courier", size=12),
+        ctk.CTkLabel(c, justify="left", font=_font(family="Courier", size=12),
                      text=(f"{len(TOOLS)} tools · {len(SECTIONS)} sections · "
                            f"{len(LANG_NAMES)} languages\n"
                            f"Python {platform.python_version()} on "
@@ -4502,7 +4599,7 @@ class ToolboxApp(ctk.CTk):
                            "   الاتصال بالشبكة يحدث فقط عند استخدام أدوات APIs صراحةً."
                            )).pack(anchor="w", padx=16, pady=(4, 12))
         s = self.card(p, "⌨️ Shortcuts")
-        ctk.CTkLabel(s, justify="left", font=ctk.CTkFont(family="Courier", size=12),
+        ctk.CTkLabel(s, justify="left", font=_font(family="Courier", size=12),
                      text=("  Ctrl+K   Command palette\n"
                            "  ↑ / ↓    Navigate palette results\n"
                            "  Ctrl+F   Focus search\n"
@@ -5102,6 +5199,7 @@ class ToolboxApp(ctk.CTk):
                 raise ValueError("folder not found")
             preview = bool(dry.get())
             L, n, skipped = [], 0, 0
+            planned: set = set()
             for name in sorted(os.listdir(d)):
                 src = os.path.join(d, name)
                 if not os.path.isfile(src):
@@ -5121,10 +5219,16 @@ class ToolboxApp(ctk.CTk):
                 new = f"{pre_e.get()}{base}{suf_e.get()}{ext}"
                 if new == name:
                     continue
-                if not preview and os.path.exists(os.path.join(d, new)):
+                tgt = os.path.join(d, new)
+                try:
+                    same = os.path.exists(tgt) and os.path.samefile(src, tgt)
+                except OSError:
+                    same = False
+                if (os.path.exists(tgt) and not same) or os.path.normcase(new) in planned:
                     L.append(f"  {name}  ⚠ skipped — target exists: {new}")
                     skipped += 1
                     continue
+                planned.add(os.path.normcase(new))
                 L.append(f"  {name}  →  {new}")
                 n += 1
                 if not preview:
@@ -5338,7 +5442,7 @@ class ToolboxApp(ctk.CTk):
         c = self.card(p, "🔢 " + self.t("Text Counter"))
         box = self.textbox(c, 240)
         res = ctk.CTkLabel(c, text="", justify="left",
-                           font=ctk.CTkFont(family="Courier", size=13))
+                           font=_font(family="Courier", size=13))
         res.pack(anchor="e" if self.rtl else "w", padx=16, pady=(0, 12))
 
         def count(*_):
@@ -5392,7 +5496,7 @@ class ToolboxApp(ctk.CTk):
         grid = ctk.CTkFrame(c, fg_color="transparent")
         grid.pack(fill="x", padx=12, pady=6)
         for i, (name, fn) in enumerate(ops):
-            ctk.CTkButton(grid, text=name, width=110, height=30,
+            ctk.CTkButton(grid, text=name, width=110, height=_fs(26),
                           command=lambda f=fn: apply(f)).grid(
                 row=i // 6, column=i % 6, padx=3, pady=3)
         self.buttons(c, [(self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
@@ -5401,8 +5505,8 @@ class ToolboxApp(ctk.CTk):
         c = self.card(p, "📑 " + self.t("Text Diff"))
         r = ctk.CTkFrame(c, fg_color="transparent")
         r.pack(fill="both", expand=True, padx=12, pady=6)
-        a = ctk.CTkTextbox(r, height=180, font=ctk.CTkFont(family="Courier", size=12))
-        b = ctk.CTkTextbox(r, height=180, font=ctk.CTkFont(family="Courier", size=12))
+        a = ctk.CTkTextbox(r, height=180, font=_font(family="Courier", size=12))
+        b = ctk.CTkTextbox(r, height=180, font=_font(family="Courier", size=12))
         a.pack(side="right" if self.rtl else "left", fill="both", expand=True, padx=4)
         b.pack(side="right" if self.rtl else "left", fill="both", expand=True, padx=4)
         out = self.textbox(c, 260)
@@ -5887,9 +5991,9 @@ class ToolboxApp(ctk.CTk):
         c = self.card(p, "🧮 " + self.t("Calculator"))
         ctk.CTkLabel(c, text=self.t("Safe: parsed via ast — no eval"),
                      text_color=CC("muted")).pack(anchor="e" if self.rtl else "w", padx=14)
-        expr = ctk.CTkEntry(c, height=48, font=ctk.CTkFont(size=20))
+        expr = ctk.CTkEntry(c, height=48, font=_font(size=20))
         expr.pack(fill="x", padx=16, pady=8)
-        result = ctk.CTkLabel(c, text="0", font=ctk.CTkFont(size=30, weight="bold"),
+        result = ctk.CTkLabel(c, text="0", font=_font(size=30, weight="bold"),
                               text_color=CC("primary"))
         result.pack(anchor="e" if self.rtl else "w", padx=18)
         hist = self.textbox(c, 150)
@@ -5931,7 +6035,7 @@ class ToolboxApp(ctk.CTk):
             compute()
 
         for i, k in enumerate(keys):
-            ctk.CTkButton(grid, text=k, width=70, height=38,
+            ctk.CTkButton(grid, text=k, width=70, height=_fs(33),
                           fg_color=CC("primary") if k in "+-*/^" else CC("surface2"),
                           text_color=CC("text") if k not in "+-*/^" else "#ffffff",
                           hover_color=CC("primary_h"),
@@ -6005,7 +6109,7 @@ class ToolboxApp(ctk.CTk):
                     f" minutes  : {days * 1440:,}",
                     "",
                     f" age today       : {years} years",
-                    f" next milestone  : {next_birthday_days(a, years)} days",
+                    f" next birthday   : {next_birthday_days(a)} days (from today)",
                     f" weekday of d1   : {a:%A}",
                     f" weekday of d2   : {b:%A}",
                     f" ISO week d2     : {b.isocalendar()[1]}",
@@ -6044,7 +6148,7 @@ class ToolboxApp(ctk.CTk):
 
     def page_timer(self, p):
         c = self.card(p, "⏱️ Stopwatch")
-        disp = ctk.CTkLabel(c, text="00:00:00.0", font=ctk.CTkFont(size=44, weight="bold"),
+        disp = ctk.CTkLabel(c, text="00:00:00.0", font=_font(size=44, weight="bold"),
                             text_color=CC("primary"))
         disp.pack(pady=10)
         state = {"t0": 0.0, "acc": 0.0, "run": False}
@@ -6076,7 +6180,7 @@ class ToolboxApp(ctk.CTk):
 
         cd = self.card(p, "⏳ Countdown")
         mins = self.field(cd, "minutes", "5", 120)
-        cdisp = ctk.CTkLabel(cd, text="05:00", font=ctk.CTkFont(size=40, weight="bold"))
+        cdisp = ctk.CTkLabel(cd, text="05:00", font=_font(size=40, weight="bold"))
         cdisp.pack(pady=8)
         cstate = {"end": 0.0, "run": False}
 
@@ -6107,10 +6211,10 @@ class ToolboxApp(ctk.CTk):
         c = self.card(p, "🍅 " + self.t("Pomodoro"))
         work = self.field(c, "work (min)", "25", 100)
         rest = self.field(c, "break (min)", "5", 100)
-        phase = ctk.CTkLabel(c, text="READY", font=ctk.CTkFont(size=16, weight="bold"),
+        phase = ctk.CTkLabel(c, text="READY", font=_font(size=16, weight="bold"),
                              text_color=CC("muted"))
         phase.pack()
-        disp = ctk.CTkLabel(c, text="25:00", font=ctk.CTkFont(size=56, weight="bold"),
+        disp = ctk.CTkLabel(c, text="25:00", font=_font(size=56, weight="bold"),
                             text_color=CC("primary"))
         disp.pack(pady=6)
         bar = ctk.CTkProgressBar(c, height=10)
@@ -6193,7 +6297,7 @@ class ToolboxApp(ctk.CTk):
                              anchor="e" if self.rtl else "w").pack(
                     side=side, fill="x", expand=True, padx=6)
                 ctk.CTkLabel(row, text=tsk.get("created", "")[:10],
-                             text_color=CC("muted"), font=ctk.CTkFont(size=10)).pack(side=side, padx=6)
+                             text_color=CC("muted"), font=_font(size=10)).pack(side=side, padx=6)
                 ctk.CTkButton(row, text="✕", width=32, fg_color="transparent",
                               hover_color=CC("err"), text_color=CC("muted"),
                               command=lambda idx=i: remove(idx)).pack(side=side, padx=4)
@@ -6319,7 +6423,7 @@ class ToolboxApp(ctk.CTk):
             rows.append(f" {'✓' if ex else '·'}  {os.path.basename(path):<34} "
                         f"{human_size(os.path.getsize(path)) if ex else '-'}")
         ctk.CTkLabel(f, text="\n".join(rows), justify="left",
-                     font=ctk.CTkFont(family="Courier", size=12)).pack(
+                     font=_font(family="Courier", size=12)).pack(
             anchor="e" if self.rtl else "w", padx=16, pady=(4, 14))
 
     # ═════════════════════════════════════════════════════
@@ -6417,6 +6521,83 @@ class ToolboxApp(ctk.CTk):
     def _key(self, name: str) -> str:
         return (self.settings.get("api_keys", {}).get(name) or "").strip()
 
+    # ── مساعدات APIs المجانية بلا مفتاح (مأخوذة من قائمة public-apis) ──
+    _WMO = {0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+            45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle",
+            55: "Dense drizzle", 56: "Freezing drizzle", 57: "Freezing drizzle",
+            61: "Light rain", 63: "Rain", 65: "Heavy rain", 66: "Freezing rain",
+            67: "Freezing rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow",
+            77: "Snow grains", 80: "Rain showers", 81: "Rain showers",
+            82: "Violent rain showers", 85: "Snow showers", 86: "Snow showers",
+            95: "Thunderstorm", 96: "Thunderstorm + hail", 99: "Thunderstorm + hail"}
+
+    def _open_meteo(self, q: str) -> str:
+        """Open-Meteo: طقس مجاني بلا مفتاح (geocoding + forecast)."""
+        g = http_json("https://geocoding-api.open-meteo.com/v1/search?"
+                      + urllib.parse.urlencode({"name": q, "count": 1,
+                                                "language": self.lang, "format": "json"}))
+        res = (g.get("results") or [])
+        if not res:
+            raise ValueError(f"city not found: {q}")
+        r0 = res[0]
+        d = http_json("https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({
+            "latitude": r0["latitude"], "longitude": r0["longitude"],
+            "current": "temperature_2m,relative_humidity_2m,apparent_temperature,"
+                       "weather_code,wind_speed_10m,pressure_msl",
+            "daily": "weather_code,temperature_2m_max,temperature_2m_min",
+            "timezone": "auto", "forecast_days": 4}))
+        cur, day = d["current"], d["daily"]
+        L = [f" 📍 {r0['name']}, {r0.get('country', '')}  (Open-Meteo — no API key needed)",
+             f" 🌡  {cur['temperature_2m']}°C  (feels {cur['apparent_temperature']}°C)",
+             f" 📝 {self._WMO.get(cur.get('weather_code'), '-')}",
+             f" 💧 humidity {cur['relative_humidity_2m']}%   ·  press {cur['pressure_msl']} hPa",
+             f" 💨 wind {cur['wind_speed_10m']} km/h", "", " forecast:"]
+        for i, dt in enumerate(day["time"]):
+            L.append(f"   {dt}   {day['temperature_2m_min'][i]}°…{day['temperature_2m_max'][i]}°C"
+                     f"   {self._WMO.get(day['weather_code'][i], '')}")
+        L += ["", " 💡 " + self.t("Add OpenWeather key in Settings for more details.")]
+        return "\n".join(L)
+
+    def _fx_rates(self, base: str) -> Tuple[Dict[str, float], str]:
+        """أسعار الصرف: open.er-api.com ثم Frankfurter كبديل (كلاهما بلا مفتاح)."""
+        try:
+            d = http_json(f"https://open.er-api.com/v6/latest/{base}")
+            if d.get("result") != "success":
+                raise RuntimeError(d.get("error-type", "api error"))
+            return d["rates"], d.get("time_last_update_utc", "")
+        except Exception:
+            d = http_json("https://api.frankfurter.dev/v1/latest?base=" + base)
+            rates = dict(d["rates"])
+            rates[base] = 1.0
+            return rates, d.get("date", "") + " (Frankfurter / ECB)"
+
+    def _hn_news(self, query: str) -> str:
+        """أخبار بلا مفتاح: أهم قصص Hacker News (يمكن تصفيتها بكلمة بحث)."""
+        ids = http_json("https://hacker-news.firebaseio.com/v0/topstories.json")[:60]
+
+        def one(i):
+            try:
+                return http_json(f"https://hacker-news.firebaseio.com/v0/item/{i}.json")
+            except Exception:
+                return None
+
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            items = [x for x in ex.map(one, ids) if x and x.get("title")]
+        q = query.lower().strip()
+        if q:
+            items = [x for x in items if q in x["title"].lower()]
+        L = [f" Hacker News — top stories ({len(items)})   (no API key needed)", ""]
+        for x in items[:20]:
+            ts = _dt.datetime.fromtimestamp(x.get("time", 0)).strftime("%Y-%m-%d %H:%M")
+            L += [f" ■ {x['title']}",
+                  f"   ▲{x.get('score', 0)}  ·  {x.get('by', '?')}  ·  {ts}",
+                  f"   {x.get('url') or 'https://news.ycombinator.com/item?id=' + str(x['id'])}",
+                  ""]
+        if not items:
+            L.append(" (no stories match — clear the query box)")
+        L += [" 💡 " + self.t("For country/topic headlines add a NewsAPI key in Settings.")]
+        return "\n".join(L)
+
     def page_weather(self, p):
         c = self.card(p, "⛅ " + self.t("Weather"))
         city = self.field(c, "city", "Istanbul", 260)
@@ -6441,7 +6622,11 @@ class ToolboxApp(ctk.CTk):
                     f" 🌅 {_dt.datetime.fromtimestamp(d['sys']['sunrise']):%H:%M}"
                     f"   🌇 {_dt.datetime.fromtimestamp(d['sys']['sunset']):%H:%M}",
                     "", " source: OpenWeather"])
-            # fallback بدون مفتاح
+            # fallback بدون مفتاح: Open-Meteo ثم wttr.in
+            try:
+                return self._open_meteo(q)
+            except Exception:
+                pass
             code, text = http_get(f"https://wttr.in/{urllib.parse.quote(q)}?format=j1")
             if code >= 400:
                 raise RuntimeError(f"HTTP {code}")
@@ -6471,15 +6656,12 @@ class ToolboxApp(ctk.CTk):
         def fetch() -> str:
             a = float(amount.get() or 1)
             f_, t_ = frm.get().strip().upper(), to.get().strip().upper()
-            d = http_json(f"https://open.er-api.com/v6/latest/{f_}")
-            if d.get("result") != "success":
-                raise RuntimeError(d.get("error-type", "api error"))
-            rates = d["rates"]
+            rates, upd = self._fx_rates(f_)
             if t_ not in rates:
                 raise ValueError(f"unknown currency: {t_}")
             L = [f" {a:,.2f} {f_}  =  {a * rates[t_]:,.2f} {t_}",
                  f" rate: 1 {f_} = {rates[t_]:.6g} {t_}",
-                 f" updated: {d.get('time_last_update_utc', '')}", "", " popular:"]
+                 f" updated: {upd}", "", " popular:"]
             for cur in ("USD", "EUR", "GBP", "TRY", "SAR", "AED", "EGP", "JPY", "CNY"):
                 if cur in rates:
                     L.append(f"   {a:,.2f} {f_} → {a * rates[cur]:>14,.2f} {cur}")
@@ -6617,9 +6799,7 @@ class ToolboxApp(ctk.CTk):
         def fetch() -> str:
             key = self._key("newsapi")
             if not key:
-                return ("⚠ NewsAPI key required.\n\n"
-                        "أضف المفتاح في: " + self.t("Settings") + " → API Keys → newsapi\n"
-                        "احصل عليه مجانًا من newsapi.org")
+                return self._hn_news(topic.get())
             url = ("https://newsapi.org/v2/top-headlines?" +
                    urllib.parse.urlencode({"q": topic.get().strip(),
                                            "country": country.get().strip() or "us",
@@ -6684,10 +6864,34 @@ class ToolboxApp(ctk.CTk):
             return (f" 🎯 {d.get('activity')}\n    type: {d.get('type')}  ·  "
                     f"participants: {d.get('participants')}")
 
-        self.buttons(c, [("😄 Joke", lambda: self.run_async(joke, lambda r_: self.set_box(out, r_), st)),
-                         ("💡 Advice", lambda: self.run_async(advice, lambda r_: self.set_box(out, r_), st)),
-                         ("🐱 Cat fact", lambda: self.run_async(catfact, lambda r_: self.set_box(out, r_), st)),
-                         ("🎯 Activity", lambda: self.run_async(activity, lambda r_: self.set_box(out, r_), st))])
+        def trivia() -> str:
+            d = http_json("https://opentdb.com/api.php?amount=1&type=multiple")
+            if d.get("response_code") != 0 or not d.get("results"):
+                raise RuntimeError("trivia API busy — try again in a few seconds")
+            r_ = d["results"][0]
+            opts = [r_["correct_answer"]] + list(r_["incorrect_answers"])
+            random.shuffle(opts)
+            U = html.unescape
+            return "\n".join([f" ❓ {U(r_['question'])}",
+                              f"    ({U(r_['category'])} · {r_['difficulty']})", ""]
+                             + [f"   {'ABCD'[i]}) {U(o)}" for i, o in enumerate(opts)]
+                             + ["", f" ✔ answer: {U(r_['correct_answer'])}"])
+
+        def fact() -> str:
+            d = http_json("https://uselessfacts.jsph.pl/api/v2/facts/random?language=en")
+            return f" 🧠 {d['text']}"
+
+        def dog() -> str:
+            d = http_json("https://dog.ceo/api/breeds/image/random")
+            return f" 🐶 {d['message']}"
+
+        def go(fn):
+            return lambda: self.run_async(fn, lambda r_: self.set_box(out, r_), st)
+
+        self.buttons(c, [("😄 Joke", go(joke)), ("💡 Advice", go(advice)),
+                         ("🐱 Cat fact", go(catfact)), ("🎯 Activity", go(activity))])
+        self.buttons(c, [("❓ Trivia", go(trivia)), ("🧠 Fact", go(fact)),
+                         ("🐶 Dog pic", go(dog))])
 
     def page_ai(self, p):
         c = self.card(p, "🤖 " + self.t("AI Assistant"))
@@ -6737,6 +6941,174 @@ class ToolboxApp(ctk.CTk):
                          (self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
 
     # ═════════════════════════════════════════════════════
+    # 【17.2】 أدوات APIs إضافية مجانية بلا مفتاح (من قائمة public-apis)
+    # ═════════════════════════════════════════════════════
+    def page_dictionary(self, p):
+        c = self.card(p, "📖 " + self.t("Dictionary"))
+        word = self.field(c, "word", "serendipity", 260)
+        out = self.textbox(c, 340)
+        st = self.statuslabel(c)
+
+        def fetch() -> str:
+            w = word.get().strip()
+            if not w:
+                raise ValueError("empty word")
+            code, text = http_get("https://api.dictionaryapi.dev/api/v2/entries/en/"
+                                  + urllib.parse.quote(w))
+            if code == 404:
+                return f" ✗ no definition found for “{w}”"
+            if code >= 400:
+                raise RuntimeError(f"HTTP {code}")
+            L: List[str] = []
+            for e in json.loads(text)[:2]:
+                L.append(f" 📖 {e.get('word', w)}   {e.get('phonetic', '')}")
+                for m in e.get("meanings", []):
+                    L.append(f"\n  ▸ {m.get('partOfSpeech', '')}")
+                    for i, df in enumerate(m.get("definitions", [])[:3], 1):
+                        L.append(f"    {i}. {df['definition']}")
+                        if df.get("example"):
+                            L.append(f"       “{df['example']}”")
+                    syn = m.get("synonyms") or []
+                    if syn:
+                        L.append("    ≈ " + ", ".join(syn[:6]))
+                L.append("")
+            return "\n".join(L)
+
+        self.buttons(c, [("📖 " + self.t("Run"),
+                          lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st)),
+                         (self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
+
+    def page_countries(self, p):
+        c = self.card(p, "🌐 " + self.t("Countries"))
+        name = self.field(c, "country", "Turkey", 260)
+        out = self.textbox(c, 340)
+        st = self.statuslabel(c)
+
+        def fetch() -> str:
+            q = name.get().strip()
+            if not q:
+                raise ValueError("empty country")
+            code, text = http_get(
+                "https://restcountries.com/v3.1/name/" + urllib.parse.quote(q) + "?fields="
+                "name,capital,region,subregion,population,area,languages,currencies,timezones,flag")
+            if code == 404:
+                return f" ✗ country not found: {q}"
+            if code >= 400:
+                raise RuntimeError(f"HTTP {code}")
+            L: List[str] = []
+            for d in json.loads(text)[:3]:
+                cur = ", ".join(f"{v.get('name')} ({k})" for k, v in (d.get("currencies") or {}).items())
+                L += [f" {d.get('flag', '')} {d['name']['common']}  —  {d['name']['official']}",
+                      f"   capital    : {', '.join(d.get('capital') or ['-'])}",
+                      f"   region     : {d.get('region', '-')} / {d.get('subregion', '-')}",
+                      f"   population : {d.get('population', 0):,}",
+                      f"   area       : {d.get('area', 0):,.0f} km²",
+                      f"   languages  : {', '.join((d.get('languages') or {}).values()) or '-'}",
+                      f"   currencies : {cur or '-'}",
+                      f"   timezones  : {', '.join(d.get('timezones') or [])}", ""]
+            return "\n".join(L)
+
+        self.buttons(c, [("🌐 " + self.t("Run"),
+                          lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st))])
+
+    def page_holidays(self, p):
+        c = self.card(p, "🎉 " + self.t("Public Holidays"))
+        cc = self.field(c, "country code", "TR", 100)
+        yr = self.field(c, "year", str(_dt.date.today().year), 100)
+        out = self.textbox(c, 340)
+        st = self.statuslabel(c)
+
+        def fetch() -> str:
+            code_ = cc.get().strip().upper()
+            y = int(yr.get().strip() or _dt.date.today().year)
+            code, text = http_get(f"https://date.nager.at/api/v3/PublicHolidays/{y}/{code_}")
+            if code == 404:
+                return f" ✗ unknown country code: {code_}  (use ISO-2: TR, US, DE, SA, EG…)"
+            if code >= 400:
+                raise RuntimeError(f"HTTP {code}")
+            L = [f" 🎉 {code_} {y}", ""]
+            for h in json.loads(text):
+                L.append(f"  {h['date']}   {h['name']:<36} {h.get('localName', '')}")
+            return "\n".join(L)
+
+        self.buttons(c, [("🎉 " + self.t("Run"),
+                          lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st))])
+
+    def page_wiki(self, p):
+        c = self.card(p, "📚 " + self.t("Wikipedia"))
+        topic = self.field(c, "topic", "Alan Turing", 280)
+        lang = self.field(c, "language", self.lang if self.lang in LANG_NAMES else "en", 80)
+        out = self.textbox(c, 340)
+        st = self.statuslabel(c)
+
+        def fetch() -> str:
+            t_ = topic.get().strip()
+            if not t_:
+                raise ValueError("empty topic")
+            lg = re.sub(r"[^a-z\-]", "", (lang.get().strip().lower() or "en")) or "en"
+            code, text = http_get(f"https://{lg}.wikipedia.org/api/rest_v1/page/summary/"
+                                  + urllib.parse.quote(t_.replace(" ", "_"), safe=""))
+            if code == 404:
+                return f" ✗ no article found for “{t_}” ({lg})"
+            if code >= 400:
+                raise RuntimeError(f"HTTP {code}")
+            d = json.loads(text)
+            return "\n".join([f" 📚 {d.get('title', t_)}", f" {d.get('description', '')}", "",
+                              d.get("extract", ""), "",
+                              " " + (d.get("content_urls", {}).get("desktop", {}).get("page", ""))])
+
+        self.buttons(c, [("📚 " + self.t("Run"),
+                          lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st)),
+                         (self.t("Copy"), lambda: self.copy_text(out.get("1.0", "end")))])
+
+    def page_books(self, p):
+        c = self.card(p, "📕 " + self.t("Books"))
+        q_ = self.field(c, "title / author", "the hobbit", 280)
+        out = self.textbox(c, 340)
+        st = self.statuslabel(c)
+
+        def fetch() -> str:
+            q = q_.get().strip()
+            if not q:
+                raise ValueError("empty query")
+            d = http_json("https://openlibrary.org/search.json?" + urllib.parse.urlencode(
+                {"q": q, "limit": 12,
+                 "fields": "title,author_name,first_publish_year,edition_count,key"}))
+            docs = d.get("docs", [])
+            L = [f" {d.get('numFound', 0):,} results (Open Library)", ""]
+            for b in docs:
+                L += [f" ■ {b.get('title', '?')}  ({b.get('first_publish_year', '?')})",
+                      f"   {', '.join((b.get('author_name') or ['?'])[:3])}  ·  "
+                      f"{b.get('edition_count', 0)} editions",
+                      f"   https://openlibrary.org{b.get('key', '')}", ""]
+            return "\n".join(L)
+
+        self.buttons(c, [("📕 " + self.t("Run"),
+                          lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st))])
+
+    def page_iss(self, p):
+        c = self.card(p, "🛰 " + self.t("ISS Tracker"))
+        out = self.textbox(c, 240)
+        st = self.statuslabel(c)
+
+        def fetch() -> str:
+            d = http_json("https://api.wheretheiss.at/v1/satellites/25544")
+            ts = _dt.datetime.fromtimestamp(d["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
+            return "\n".join([
+                " 🛰 International Space Station", "",
+                f"   latitude   : {d['latitude']:.4f}°",
+                f"   longitude  : {d['longitude']:.4f}°",
+                f"   altitude   : {d['altitude']:.1f} km",
+                f"   velocity   : {d['velocity']:,.0f} km/h",
+                f"   visibility : {d.get('visibility', '-')}",
+                f"   time       : {ts}", "",
+                f"   map: https://www.openstreetmap.org/?mlat={d['latitude']:.4f}"
+                f"&mlon={d['longitude']:.4f}#map=4/{d['latitude']:.2f}/{d['longitude']:.2f}"])
+
+        self.buttons(c, [("🔄 " + self.t("Run"),
+                          lambda: self.run_async(fetch, lambda r_: self.set_box(out, r_), st))])
+
+    # ═════════════════════════════════════════════════════
     # 【17.5】 Local LLM — تشغيل نماذج GGUF محليًا (llama.cpp) — v4.1
     # ═════════════════════════════════════════════════════
     def page_llm(self, p):
@@ -6767,7 +7139,7 @@ class ToolboxApp(ctk.CTk):
         BK_INV = {BK_LOCAL: "local", BK_SERVER: "server", BK_AUTO: "auto"}
         _pr_saved = self.settings.get("llm_params") or {}
         bk_row = self.row(c1)
-        ctk.CTkLabel(bk_row, text=self.t("Backend"), width=150,
+        ctk.CTkLabel(bk_row, text=self.t("Backend"), width=_fs(130),
                      anchor=anch).pack(side=side)
         bk = ctk.CTkOptionMenu(bk_row, width=340,
                                values=[BK_LOCAL, BK_SERVER, BK_AUTO])
@@ -6779,7 +7151,7 @@ class ToolboxApp(ctk.CTk):
         if llama_mod is None:
             # ✦ v4.3: لوحة مساعدة التثبيت — تشرح خيارات الحل بالتفصيل (قابلة للنسخ)
             hb = ctk.CTkTextbox(c1, height=180,
-                                font=ctk.CTkFont(family="Courier", size=12))
+                                font=_font(family="Courier", size=12))
             hb.pack(fill="x", padx=12, pady=(6, 2))
             hb.insert("1.0", _LLM_INSTALL_HELP)
             hb.configure(state="disabled")
@@ -6794,7 +7166,7 @@ class ToolboxApp(ctk.CTk):
                                                                    padx=4)
 
         ur = self.row(c1)
-        ctk.CTkLabel(ur, text=self.t("Server URL"), width=150,
+        ctk.CTkLabel(ur, text=self.t("Server URL"), width=_fs(130),
                      anchor=anch).pack(side=side)
         eurl = ctk.CTkEntry(ur, width=340,
                             placeholder_text="http://127.0.0.1:8080")
@@ -6802,7 +7174,7 @@ class ToolboxApp(ctk.CTk):
         eurl.pack(side=side, padx=8)
 
         xr = self.row(c1)
-        ctk.CTkLabel(xr, text=self.t("llama-server executable"), width=150,
+        ctk.CTkLabel(xr, text=self.t("llama-server executable"), width=_fs(130),
                      anchor=anch).pack(side=side)
         eexe = ctk.CTkEntry(xr, width=260,
                             placeholder_text="llama-server.exe")
@@ -6823,7 +7195,7 @@ class ToolboxApp(ctk.CTk):
 
         # ✦ v4.4: خيار التنزيل التلقائي — llama-server من GitHub بضغطة واحدة
         bld_row = self.row(c1)
-        ctk.CTkLabel(bld_row, text=self.t("Build"), width=150,
+        ctk.CTkLabel(bld_row, text=self.t("Build"), width=_fs(130),
                      anchor=anch).pack(side=side)
         BLD_INV = {self.t("Auto (recommended)"): "auto",
                    self.t("CPU build"): "cpu",
@@ -6912,7 +7284,7 @@ class ToolboxApp(ctk.CTk):
         b_srv.configure(command=start_srv_dl)
 
         ptr = self.row(c1)
-        ctk.CTkLabel(ptr, text=self.t("Port"), width=150,
+        ctk.CTkLabel(ptr, text=self.t("Port"), width=_fs(130),
                      anchor=anch).pack(side=side)
         eport = ctk.CTkEntry(ptr, width=120)
         eport.insert(0, str(_pr_saved.get("port", "8765")))
@@ -6929,7 +7301,7 @@ class ToolboxApp(ctk.CTk):
         LARGE_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
                         if m.get("tier") == "large"]
         mdr = self.row(c1)
-        ctk.CTkLabel(mdr, text=self.t("Download model"), width=150,
+        ctk.CTkLabel(mdr, text=self.t("Download model"), width=_fs(130),
                      anchor=anch).pack(side=side)
         omdl = ctk.CTkOptionMenu(mdr, width=330,
                                  values=SMALL_LABELS or ["-"])
@@ -6940,7 +7312,7 @@ class ToolboxApp(ctk.CTk):
 
         # ✦ v4.5: الموديلات الكبيرة (7B حتى 70B) في قائمة مستقلة
         mlr = self.row(c1)
-        ctk.CTkLabel(mlr, text=self.t("Download large model"), width=150,
+        ctk.CTkLabel(mlr, text=self.t("Download large model"), width=_fs(130),
                      anchor=anch).pack(side=side)
         omdl_lg = ctk.CTkOptionMenu(mlr, width=330,
                                     values=LARGE_LABELS or ["-"])
@@ -6953,7 +7325,7 @@ class ToolboxApp(ctk.CTk):
         UN_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
                      if m.get("tier") == "unc"]
         unr = self.row(c1)
-        ctk.CTkLabel(unr, text=self.t("Download uncensored model"), width=150,
+        ctk.CTkLabel(unr, text=self.t("Download uncensored model"), width=_fs(130),
                      anchor=anch).pack(side=side)
         omdl_un = ctk.CTkOptionMenu(unr, width=330,
                                     values=UN_LABELS or ["-"])
@@ -7033,7 +7405,7 @@ class ToolboxApp(ctk.CTk):
                     ("1", "true", "True", "1.0"),
                     "kv": str(_pr_saved.get("kv", "Auto") or "Auto")}
         info = ctk.CTkLabel(c1, text="", justify="left", anchor=anch,
-                            font=ctk.CTkFont(family="Courier", size=12))
+                            font=_font(family="Courier", size=12))
         info.pack(anchor=anch, padx=14, pady=(6, 10), fill="x")
         ramhint = ctk.CTkLabel(c1, text="", justify="left", anchor=anch,
                                text_color=CC("warn"))
@@ -7126,7 +7498,7 @@ class ToolboxApp(ctk.CTk):
         rec_menu = None
         if rec:
             rr = self.row(c1)
-            ctk.CTkLabel(rr, text=self.t("Recent models"), width=150,
+            ctk.CTkLabel(rr, text=self.t("Recent models"), width=_fs(130),
                          anchor=anch).pack(side=side)
             rec_menu = ctk.CTkOptionMenu(rr, width=400,
                                          values=[os.path.basename(x) for x in rec])
@@ -7497,7 +7869,7 @@ class ToolboxApp(ctk.CTk):
         sw_think.configure(command=lambda: _save_llm_params(
             BK_INV.get(bk.get(), "local"), think=str(sw_think.get())))
         trans = ctk.CTkTextbox(c3, height=300,
-                               font=ctk.CTkFont(family="Courier", size=13))
+                               font=_font(family="Courier", size=13))
         trans.pack(fill="both", expand=True, padx=12, pady=(8, 6))
         trans.configure(state="disabled")
         ctk.CTkLabel(c3, text=self.t("Your message"),
@@ -7963,14 +8335,14 @@ class ToolboxApp(ctk.CTk):
                 rf = ctk.CTkFrame(listf, fg_color="transparent")
                 rf.pack(fill="x", padx=6, pady=3)
                 ctk.CTkLabel(rf, text=e.get("t") or "—",
-                             font=ctk.CTkFont(size=13, weight="bold")
+                             font=_font(size=13, weight="bold")
                              ).pack(side=side, padx=(8, 4))
                 if e.get("u"):
                     ctk.CTkLabel(rf, text=e["u"],
                                  text_color=CC("muted")).pack(side=side, padx=4)
                 shown = {"on": False}
                 lp = ctk.CTkLabel(rf, text="••••••••", width=90,
-                                  font=ctk.CTkFont(family="Courier", size=12))
+                                  font=_font(family="Courier", size=12))
 
                 def _toggle(e=e, lp=lp, shown=shown):
                     _touch()
@@ -8003,13 +8375,13 @@ class ToolboxApp(ctk.CTk):
         # ── بطاقة 3: إضافة/تعديل إدخال ─────────────────────
         c3 = self.card(p)
         form_lbl = ctk.CTkLabel(c3, text="➕ " + self.t("Add entry"),
-                                font=ctk.CTkFont(size=14, weight="bold"),
+                                font=_font(size=14, weight="bold"),
                                 text_color=CC("primary"))
         form_lbl.pack(anchor=anch, padx=14, pady=(12, 0))
         f_title = self.field(c3, self.t("Title"), "", 320)
         f_user = self.field(c3, self.t("Username"), "", 320)
         fr2 = self.row(c3)
-        ctk.CTkLabel(fr2, text=self.t("Password"), width=150,
+        ctk.CTkLabel(fr2, text=self.t("Password"), width=_fs(130),
                      anchor=anch).pack(side=side)
         f_pass = ctk.CTkEntry(fr2, width=250, show="•")
         f_pass.pack(side=side, padx=8)
@@ -8150,7 +8522,7 @@ class ToolboxApp(ctk.CTk):
                      text=(f"✓ detected: {script}" if script
                            else "✗ " + self.t("polybuild.py not found — set it in Settings")),
                      text_color=CC("ok") if script else CC("err"),
-                     font=ctk.CTkFont(family="Courier", size=12)).pack(
+                     font=_font(family="Courier", size=12)).pack(
             anchor="e" if self.rtl else "w", padx=14, pady=(0, 10))
 
         src = self._folder_picker(head, "project")
@@ -8194,7 +8566,7 @@ class ToolboxApp(ctk.CTk):
         # ── المخرجات الملوّنة
         outcard = self.card(p, "📜 Build output")
         log = ctk.CTkTextbox(outcard, height=300,
-                             font=ctk.CTkFont(family="Courier", size=12))
+                             font=_font(family="Courier", size=12))
         log.pack(fill="both", expand=True, padx=12, pady=8)
         try:
             log.tag_config("ok", foreground=C("ok"))
@@ -8446,6 +8818,8 @@ def main():
     settings = jload(F_SETTINGS, {})
     lang = settings.get("lang", "en")
     font = "Tajawal" if lang in RTL_LANGS else "Roboto"
+    global FONT_SCALE
+    FONT_SCALE = FONT_SCALES.get(settings.get("font_size", "Normal"), 1.15)
 
     theme_path = build_theme_file(font)
     try:
