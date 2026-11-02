@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Hello Plugin — مثال تعريفي لنظام إضافات Ultimate Toolbox Pro v4.2.
+"""Hello Plugin — مثال تعريفي لنظام إضافات Ultimate Toolbox Pro.
 
 يوضّح: التسجيل، البطاقات، الحقول، الأزرار، التوست، النسخ، التنقل بين
 الأدوات، والترجمة وقت التشغيل عبر add_translations().
@@ -100,7 +100,7 @@ def build(api, parent):
 
     # إمكانية الخلط مع عناصر customtkinter مباشرة عند الحاجة
     r = row(parent)
-    ctk.CTkLabel(r, text="🔌 v4.2 • API 1.0",
+    ctk.CTkLabel(r, text="🔌 API 1.0",
                  font=api.font(12), text_color="#9a9aa8").pack(
         anchor="e" if api.is_rtl() else "w")
 

@@ -26,6 +26,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller customtkinter psutil requests "qrcode[pil]" Pillow tzdata cryptography
 
+      - name: Optional - llama-cpp-python (in-process LLM)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          pip install llama-cpp-python --only-binary=:all: --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+
       - name: Syntax check
         shell: pwsh
         run: python -m py_compile toolbox.py toolbox_api.py polybuild.py
@@ -59,6 +65,11 @@ jobs:
             '--collect-submodules',
             'qrcode'
           )
+
+          python -c "import llama_cpp" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $args += @('--collect-all', 'llama_cpp')
+          }
 
           if (Test-Path 'icon.ico') {
             $args += @('--icon', 'icon.ico')

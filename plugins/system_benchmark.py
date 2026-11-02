@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Quick Benchmark — إضافة نموذجية لـ Ultimate Toolbox Pro v4.2.
+"""Quick Benchmark — إضافة نموذجية لـ Ultimate Toolbox Pro.
 
 قياس سريع لسرعة المعالج (هاش SHA-256) وعمليات الذاكرة، مع تنفيذ
 غير متزامن عبر run_async + تحديثات لحظية آمنة عبر ui() وإمكانية

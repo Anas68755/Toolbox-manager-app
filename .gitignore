@@ -1,0 +1,10 @@
+.venv/
+build/
+dist/
+__pycache__/
+*.spec
+*.tmp
+ultimate_toolbox_*.json
+ultimate_toolbox_notes.txt
+toolbox_data/
+toolbox_crash.log

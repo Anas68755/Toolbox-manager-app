@@ -21,6 +21,22 @@ The project is built for users who want a fast, offline-friendly, and highly pra
 
 Double-click **`build.bat`** (needs Python 3 on PATH). It creates a `.venv`, installs `requirements.txt` + PyInstaller, checks syntax and builds **`dist\Toolbox.exe`** with the same options as the GitHub workflow.
 
+The EXE only contains packages that were installed when it was built. `build.bat` and the GitHub workflow therefore try to add **llama-cpp-python** (prebuilt CPU wheel, Python 3.12 or older) so the in-process LLM backend works inside the EXE. If no wheel exists for your Python, the EXE still builds and the Local LLM tool works through the **llama.cpp Server (auto-start)** backend, which needs no extra package.
+
+Settings, downloaded models and the llama-server binary are stored next to the EXE (`ultimate_toolbox_settings.json`, `toolbox_data/`). To reuse existing ones, copy them next to `Toolbox.exe`.
+
+## Context menu & input shortcuts (every tool)
+
+Right-click (or press the Menu key / Shift+F10) in **any** text field or output box in the app, including plugins, to get a context menu: Undo, Redo, Cut, Copy, Paste, Delete, Select all, Copy all, Save to file… and Clear. Items that don't apply are disabled; read-only output boxes offer Copy, Select all, Copy all and Save to file; password fields never offer Cut or Copy. The menu is built into the app itself, so it works the same whether you start it with `python toolbox.py` or from the compiled EXE. On macOS use two-finger click or Ctrl+click.
+
+Also available everywhere: **Ctrl+A** selects all in any field, **Ctrl+Z / Ctrl+Y** undo and redo inside text boxes, and the field you are typing in gets a highlighted border.
+
+Chat input: **Enter** sends, **Shift+Enter** adds a new line (a switch turns "Enter sends" off, then Ctrl+Enter sends), **Esc** stops generation, **↑ / ↓** recall your previous messages when the box is empty. 📎 *Attach file* pastes a text file you choose into your message, ✨ *Quick prompts* inserts ready-made templates, and a counter shows characters and estimated tokens (it turns orange near the context limit). Answers are rendered with Markdown styling (headings, bold, italic, inline code, code blocks, lists, quotes, links) while the saved chat text stays plain Markdown.
+
+## Local LLM page layout
+
+The Local LLM tool is organised into four tabs: **Chat**, **Model** (engine, server, model files and downloads), **Configuration** and **Agent**. A status chip at the top always shows the loaded model (or "generating" / "downloading"). The page opens on Chat when a model or server is already available, otherwise on Model. In the chat, your messages, the assistant's replies, tool calls and token stats use different colours, and the message box sits next to the Send and Stop buttons.
+
 ## LLM agent mode (internet & device access, with your permission)
 
 In **Local LLM → 🛡 Agent mode** you can let the model use tools. It is **off by default**; when you turn it on, the model can ask to:
@@ -28,7 +44,8 @@ In **Local LLM → 🛡 Agent mode** you can let the model use tools. It is **of
 | Tool | What it does | Permission |
 |------|--------------|------------|
 | `web_search`, `web_fetch` | search the web / read a page through **your** internet connection (no API keys; DuckDuckGo, Wikipedia fallback) | Off · Ask each time · Allow this session |
-| `read_file`, `list_dir` | read text files / list folders | Off · Ask each time · Allow this session |
+| `read_file`, `list_dir` | read a text file ~6 KB at a time from any byte offset (the reply says where to continue) / list folders | Off · Ask each time · Allow this session |
+| `analyze_file` | process a **large** file completely: your model reads it part by part (sized to the model's context), keeps running notes, and returns a condensed result. Slow but unlimited in file size; progress is shown and **Stop** cancels (it tells you the offset to resume from) | same as reading files |
 | `write_file` | create / overwrite / append a text file | Off · Ask each time (**always asks**) |
 | `run_command` | run a program (no shell, 60 s limit) | Off · Ask each time (**always asks**) |
 | `system_info` | OS, CPU, RAM, disk (no user/host name) | Off · Ask each time · Allow this session |
@@ -190,6 +207,10 @@ All user data is stored locally in the same folder as the app, with no cloud syn
 - External API tools are only used when the user intentionally invokes them
 
 This app is designed around local-first privacy and user control.
+
+- Backups exclude API keys (re-enter them after restoring); importing a backup can never switch on the LLM agent mode or erase existing keys.
+- On Linux/macOS the settings file (which holds API keys) is created readable by you only.
+- The generic HTTP tools only accept `http://` and `https://` URLs.
 
 ## Project Philosophy
 

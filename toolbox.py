@@ -267,6 +267,9 @@ def _base_theme_dict() -> Dict[str, Any]:
 
 
 # ── حجم الخط: معامل عام يُقرأ من الإعدادات (font_scale) قبل بناء الواجهة
+# خط أحادي المسافة مناسب لكل نظام (بدل Courier القديم)
+MONO_FONT = ("Consolas" if os.name == "nt"
+             else ("Menlo" if sys.platform == "darwin" else "DejaVu Sans Mono"))
 FONT_SCALES = {"Small": 1.0, "Normal": 1.15, "Large": 1.3, "Extra large": 1.5}
 FONT_SCALE = 1.15
 
@@ -1064,6 +1067,45 @@ _LLM_T: Dict[str, Dict[str, str]] = {
 for _l, _m in _LLM_T.items():
     TRANSLATIONS.setdefault(_l, {}).update(_m)
 del _l, _m
+
+# ✦ نصوص تجربة الإدخال (قائمة سياقية + شات) — تُدمج بنفس الأسلوب
+_UX_T: Dict[str, Dict[str, str]] = {
+    "ar": {"Cut": "قص", "Paste": "لصق", "Select all": "تحديد الكل", "Undo": "تراجع",
+           "Redo": "إعادة", "Copy all": "نسخ الكل", "Save to file…": "حفظ في ملف…",
+           "Quick prompts": "قوالب سريعة", "Attach file": "إرفاق ملف",
+           "Enter sends": "Enter للإرسال", "Last answer": "آخر إجابة",
+           "chars": "حرف", "tokens": "رمز", "Agent": "الوكيل", "Chat": "المحادثة",
+           "Model": "النموذج", "Saved to": "تم الحفظ في",
+           "Load a model in the Model tab first.": "حمّل نموذجًا من تبويب النموذج أولًا."},
+    "zh": {"Cut": "剪切", "Paste": "粘贴", "Select all": "全选", "Undo": "撤销", "Redo": "重做",
+           "Copy all": "复制全部", "Save to file…": "保存到文件…"},
+    "es": {"Cut": "Cortar", "Paste": "Pegar", "Select all": "Seleccionar todo",
+           "Undo": "Deshacer", "Redo": "Rehacer", "Copy all": "Copiar todo",
+           "Save to file…": "Guardar en archivo…"},
+    "fr": {"Cut": "Couper", "Paste": "Coller", "Select all": "Tout sélectionner",
+           "Undo": "Annuler", "Redo": "Rétablir", "Copy all": "Tout copier",
+           "Save to file…": "Enregistrer dans un fichier…"},
+    "ru": {"Cut": "Вырезать", "Paste": "Вставить", "Select all": "Выделить всё",
+           "Undo": "Отменить", "Redo": "Повторить", "Copy all": "Копировать всё",
+           "Save to file…": "Сохранить в файл…"},
+    "pt": {"Cut": "Recortar", "Paste": "Colar", "Select all": "Selecionar tudo",
+           "Undo": "Desfazer", "Redo": "Refazer", "Copy all": "Copiar tudo",
+           "Save to file…": "Salvar em arquivo…"},
+    "hi": {"Cut": "काटें", "Paste": "चिपकाएँ", "Select all": "सभी चुनें",
+           "Undo": "पूर्ववत करें", "Redo": "फिर से करें", "Copy all": "सब कॉपी करें",
+           "Save to file…": "फ़ाइल में सहेजें…"},
+    "bn": {"Cut": "কাটুন", "Paste": "পেস্ট করুন", "Select all": "সব নির্বাচন করুন",
+           "Undo": "আনডু", "Redo": "রিডু", "Copy all": "সব কপি করুন",
+           "Save to file…": "ফাইলে সংরক্ষণ করুন…"},
+    "ur": {"Cut": "کاٹیں", "Paste": "پیسٹ کریں", "Select all": "سب منتخب کریں",
+           "Undo": "کالعدم کریں", "Redo": "دوبارہ کریں", "Copy all": "سب کاپی کریں",
+           "Save to file…": "فائل میں محفوظ کریں…"},
+}
+for _l, _m in _UX_T.items():
+    for _k, _v in _m.items():
+        TRANSLATIONS.setdefault(_l, {}).setdefault(_k, _v)      # لا نطغى على ترجمات موجودة
+del _l, _m, _k, _v
+
 
 # ✦ مفاتيح التنزيل التلقائي (llama-server + موديلات GGUF) — بنفس أسلوب _LLM_T
 _LLMDL_T: Dict[str, Dict[str, str]] = {
@@ -1920,6 +1962,11 @@ def jsave(path: str, data: Any) -> bool:
             except Exception:
                 pass
         os.replace(tmp, path)
+        if os.name != "nt" and os.path.abspath(path) == os.path.abspath(F_SETTINGS):
+            try:
+                os.chmod(path, 0o600)          # يحتوي مفاتيح API — للمالك فقط
+            except OSError:
+                pass
         return True
     except Exception:
         try:
@@ -2122,9 +2169,17 @@ def hsl_to_rgb(h: float, s: float, l: float) -> Tuple[int, int, int]:
 
 
 # ── شبكة: طبقة HTTP بسيطة تعمل بـ requests أو urllib
+def _require_http(url: str) -> None:
+    """يمنع file:// و ftp:// وغيرها في أدوات الشبكة العامة (مسار urllib كان يقبلها)."""
+    sch = urllib.parse.urlparse(str(url).strip()).scheme.lower()
+    if sch not in ("http", "https"):
+        raise ValueError("only http:// and https:// URLs are allowed")
+
+
 def http_get(url: str, headers: Optional[dict] = None,
              timeout: int = NET_TIMEOUT) -> Tuple[int, str]:
     """GET بسيط — يستخدم requests إن وُجد، وإلا urllib."""
+    _require_http(url)
     headers = dict(headers or {})
     headers.setdefault("User-Agent", APP_NAME)
     if HAS_REQUESTS:
@@ -2146,6 +2201,7 @@ def http_request(method: str, url: str, headers: Optional[dict] = None,
                  data: Optional[str] = None,
                  timeout: int = NET_TIMEOUT) -> Tuple[int, str, Dict[str, str]]:
     """طلب HTTP عام (GET/POST/PUT/DELETE/HEAD) — يعيد (الحالة، النص، الترويسات)."""
+    _require_http(url)
     hdrs = dict(headers or {})
     hdrs.setdefault("User-Agent", APP_NAME)
     body = data.encode("utf-8") if isinstance(data, str) else data
@@ -2635,6 +2691,16 @@ def _llm_lowram_flags(lowram: bool, kv_q: str, moe: bool,
 # ─────────────────────────────────────────────────────────────
 # 【5.6】 خادم llama.cpp عبر HTTP (بلا llama-cpp-python وبلا مترجم)
 # ─────────────────────────────────────────────────────────────
+_LLM_FROZEN_NOTE = """\
+This is the compiled EXE: it can only use packages that were bundled when it
+was built, and it cannot pip-install anything.
+-> Use Backend = "llama.cpp Server (auto-start)" - it works in this EXE
+   without llama-cpp-python (download llama-server + a model with the buttons below).
+-> Or rebuild with build.bat using a Python version that has a prebuilt
+   llama-cpp-python wheel (3.12 or older) to bundle the in-process engine.
+
+"""
+
 _LLM_INSTALL_HELP = """\
 llama-cpp-python — install help
 ===============================
@@ -3347,6 +3413,133 @@ def _vault_genpw(length: int = 16) -> str:
 
 
 # ─────────────────────────────────────────────────────────────
+# 【5.4】 تجربة الإدخال والعرض (دوال نقية قابلة للاختبار)
+#   • ctx_menu_spec: محتوى القائمة السياقية حسب حالة الحقل
+#   • md_spans / md_blocks: تنسيق Markdown داخل المحادثة (عرض فقط)
+# ─────────────────────────────────────────────────────────────
+def ctx_menu_spec(kind: str, editable: bool, has_sel: bool, has_text: bool,
+                  has_clip: bool, can_undo: bool, secret: bool) -> List[Optional[Tuple[str, bool]]]:
+    """عناصر القائمة السياقية: (المفتاح، مفعّل؟) أو None للفاصل."""
+    items: List[Optional[Tuple[str, bool]]] = []
+    if editable and can_undo and not secret:
+        items += [("Undo", True), ("Redo", True), None]
+    if editable and not secret:
+        items.append(("Cut", has_sel))
+    if not secret:
+        items.append(("Copy", has_sel))
+    if editable:
+        items += [("Paste", has_clip), ("Delete", has_sel)]
+    items += [None, ("Select all", has_text)]
+    if kind == "text" and not secret:
+        items += [("Copy all", has_text), ("Save to file…", has_text)]
+    if editable and has_text:
+        items.append(("Clear", True))
+    out: List[Optional[Tuple[str, bool]]] = []           # تنظيف الفواصل المتكررة/الطرفية
+    for it in items:
+        if it is None and (not out or out[-1] is None):
+            continue
+        out.append(it)
+    while out and out[-1] is None:
+        out.pop()
+    return out
+
+
+_MD_CODE = re.compile(r"`([^`\n]+)`")
+_MD_BOLD = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*")
+_MD_ITAL = re.compile(r"(?<![\*\w])\*(?=[^\s*])([^*\n]+?)(?<=[^\s*])\*(?![\*\w])")
+_MD_LINK = re.compile(r"\[([^\]\n]+)\]\((https?://[^)\s]+)\)")
+_MD_HEAD = re.compile(r"^(#{1,3})[ \t]+(.*\S.*)$")
+_MD_BULLET = re.compile(r"^([ \t]*)([-*+]|\d{1,3}[.)])[ \t]+")
+_MD_QUOTE = re.compile(r"^>[ \t]?")
+_MD_ASSIST_END = re.compile(r"^(🧑 |🔧 |— \d|   [✓✗📄])")
+
+
+def md_inline(s: str, base: int = 0) -> List[Tuple[str, int, int]]:
+    """تنسيق داخل السطر: `code` و **bold** و *italic* و [text](url) → (وسم، من، إلى)."""
+    spans: List[Tuple[str, int, int]] = []
+    taken: List[Tuple[int, int]] = []
+
+    def free(a: int, b: int) -> bool:
+        return not any(a < y and x < b for x, y in taken)
+
+    for rx, kind in ((_MD_CODE, "code"), (_MD_BOLD, "bold"), (_MD_LINK, "link"), (_MD_ITAL, "italic")):
+        for m in rx.finditer(s):
+            a, b = m.span()
+            if not free(a, b):
+                continue
+            taken.append((a, b))
+            if kind == "code":
+                spans += [("md_hide", a, a + 1), ("md_code", a + 1, b - 1), ("md_hide", b - 1, b)]
+            elif kind == "bold":
+                spans += [("md_hide", a, a + 2), ("md_bold", a + 2, b - 2), ("md_hide", b - 2, b)]
+            elif kind == "italic":
+                spans += [("md_hide", a, a + 1), ("md_italic", a + 1, b - 1), ("md_hide", b - 1, b)]
+            else:
+                t0, t1 = m.span(1)
+                spans += [("md_hide", a, t0), ("md_link", t0, t1), ("md_hide", t1, b)]
+    return [(t, x + base, y + base) for t, x, y in spans]
+
+
+def md_spans(lines: List[str]) -> List[Tuple[str, int, int, Optional[int]]]:
+    """أسطر جواب النموذج → (وسم، رقم السطر، عمود البداية، عمود النهاية|None=حتى نهاية السطر مع \\n)."""
+    out: List[Tuple[str, int, int, Optional[int]]] = []
+    in_code = False
+    for i, ln in enumerate(lines):
+        if ln.strip().startswith("```"):                 # سياج الكود: يُخفى بالكامل
+            out.append(("md_hide", i, 0, None))
+            in_code = not in_code
+            continue
+        if in_code:
+            out.append(("md_codeblock", i, 0, None))
+            continue
+        mh = _MD_HEAD.match(ln)
+        if mh:
+            out.append(("md_hide", i, 0, mh.start(2)))
+            out.append((f"md_h{len(mh.group(1))}", i, mh.start(2), len(ln)))
+            continue
+        off = 0
+        mq = _MD_QUOTE.match(ln)
+        if mq:
+            out.append(("md_hide", i, 0, mq.end()))
+            out.append(("md_quote", i, mq.end(), len(ln)))
+            off = mq.end()
+        else:
+            mb = _MD_BULLET.match(ln)
+            if mb:
+                out.append(("md_bullet", i, 0, len(ln)))
+                out.append(("md_bulletmark", i, mb.start(2), mb.end(2)))
+                off = mb.end()
+        for tag, a, b in md_inline(ln[off:], off):
+            out.append((tag, i, a, b))
+    return out
+
+
+def md_blocks(lines: List[str]) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+    """يحدّد نطاقات أسطر جواب المساعد ورسائل المستخدم في نص المحادثة → (assistant, user)."""
+    asst: List[Tuple[int, int]] = []
+    usr: List[Tuple[int, int]] = []
+    cur: Optional[Tuple[str, int]] = None
+
+    def close(end: int):
+        nonlocal cur
+        if cur is not None:
+            (asst if cur[0] == "a" else usr).append((cur[1], end))
+        cur = None
+
+    for i, ln in enumerate(lines):
+        if ln.startswith("🦙 "):
+            close(i)
+            cur = ("a", i + 1)
+        elif ln.startswith("🧑 "):
+            close(i)
+            cur = ("u", i)
+        elif cur is not None and cur[0] == "a" and _MD_ASSIST_END.match(ln):
+            close(i)
+    close(len(lines))
+    return asst, usr
+
+
+# ─────────────────────────────────────────────────────────────
 # 【5.6】 وكيل الـ LLM — أدوات الإنترنت والجهاز، كلها بإذن المستخدم
 #   • لا شيء يعمل إلا بعد تفعيل «وضع الوكيل» من صفحة الـ LLM.
 #   • كل إجراء يُعرض بتفاصيله الكاملة، ويطلب موافقة (مرة واحدة / للجلسة / رفض).
@@ -3357,8 +3550,10 @@ AGENT_MODE_OFF, AGENT_MODE_ASK, AGENT_MODE_SESSION = "Off", "Ask each time", "Al
 AGENT_MAX_STEPS = 6                 # أقصى عدد استدعاءات أدوات في الرد الواحد
 AGENT_RESULT_CHARS = 6000           # حد حجم نتيجة الأداة المُرجَعة للنموذج
 AGENT_ASK_TIMEOUT = 180             # ثوانٍ — انتهاء المهلة = رفض
+AGENT_READ_BYTES = 5800             # حجم الجزء الواحد في read_file
+AGENT_ANALYZE_MAX_PARTS = 1000      # أقصى عدد أجزاء في استدعاء analyze_file الواحد
 AGENT_TOOL_CAP = {"web_search": "internet", "web_fetch": "internet",
-                  "read_file": "read", "list_dir": "read",
+                  "read_file": "read", "analyze_file": "read", "list_dir": "read",
                   "write_file": "write", "run_command": "run",
                   "system_info": "sysinfo"}
 AGENT_CAPS = [("internet", "🌐 Internet (search & read web pages)"),
@@ -3538,20 +3733,102 @@ def agent_path_blocked(path: str) -> Optional[str]:
     return None
 
 
-def agent_read_file(path: str, max_bytes: int = 200_000) -> str:
+def agent_read_file(path: str, offset: int = 0) -> str:
+    """يقرأ جزءًا (~6000 بايت) من ملف نصي بدءًا من offset (بالبايت).
+
+    الرأس يخبر النموذج بالموضع التالي ليكمل القراءة عند الحاجة.
+    """
     bl = agent_path_blocked(path)
     if bl:
         raise PermissionError(bl)
     fp = os.path.expanduser(path)
     if not os.path.isfile(fp):
         raise FileNotFoundError(f"not a file: {path}")
+    size = os.path.getsize(fp)
+    offset = max(0, min(int(offset or 0), size))
     with open(fp, "rb") as f:
-        data = f.read(max_bytes + 1)
-    if b"\0" in data[:4096]:
-        return f"[binary file, {os.path.getsize(fp):,} bytes — not shown]"
-    cut = len(data) > max_bytes
-    txt = data[:max_bytes].decode("utf-8", "replace")
-    return txt + ("\n…[file truncated]" if cut else "")
+        f.seek(offset)
+        data = f.read(AGENT_READ_BYTES)
+    if offset == 0 and b"\0" in data[:4096]:
+        return f"[binary file, {size:,} bytes — not shown]"
+    end = offset + len(data)
+    tail = (f"; more remains — call read_file with offset={end}, or analyze_file for the whole file]"
+            if end < size else "; end of file]")
+    return f"[bytes {offset:,}-{end:,} of {size:,}{tail}\n" + data.decode("utf-8", "replace")
+
+
+def agent_chunks(fp: str, offset: int, chunk_bytes: int, max_parts: int):
+    """يقسّم ملفًا كبيرًا إلى أجزاء (على حدود الأسطر قدر الإمكان) → (رقم، المجموع التقديري، النص، نهاية الجزء)."""
+    size = os.path.getsize(fp)
+    total = min(max_parts, max(1, -(-(size - offset) // max(1, chunk_bytes))))
+    pos, i = offset, 0
+    with open(fp, "rb") as f:
+        f.seek(pos)
+        while pos < size and i < max_parts:
+            data = f.read(chunk_bytes)
+            if not data:
+                break
+            if pos + len(data) < size:
+                nl = data.rfind(b"\n")
+                if nl > len(data) // 2:
+                    data = data[:nl + 1]
+            pos += len(data)
+            f.seek(pos)
+            i += 1
+            yield i, max(total, i), data.decode("utf-8", "replace"), pos
+
+
+def agent_analyze_file(path: str, task: str, offset: int, ctx: Dict[str, Any]) -> str:
+    """يعالج ملفًا كبيرًا بالكامل جزءًا جزءًا بواسطة النموذج نفسه (ملاحظات متجدّدة).
+
+    بطيء بطبيعته لكنه لا يتجاوز نافذة السياق: كل جزء + الملاحظات الحالية فقط.
+    """
+    bl = agent_path_blocked(path)
+    if bl:
+        raise PermissionError(bl)
+    gen = ctx.get("gen")
+    if gen is None:
+        raise RuntimeError("analyze_file needs a loaded model")
+    progress = ctx.get("progress") or (lambda i, n: None)
+    stopped = ctx.get("stopped") or (lambda: False)
+    fp = os.path.expanduser(path)
+    if not os.path.isfile(fp):
+        raise FileNotFoundError(f"not a file: {path}")
+    size = os.path.getsize(fp)
+    offset = max(0, min(int(offset or 0), size))
+    with open(fp, "rb") as f:
+        f.seek(offset)
+        if b"\0" in f.read(4096):
+            return f"[binary file, {size:,} bytes — cannot be analyzed as text]"
+    n_ctx = int(ctx.get("n_ctx") or 4096)
+    notes_cap = 2000 if n_ctx <= 4096 else (4000 if n_ctx <= 8192 else 5500)
+    notes_tok = int(notes_cap / 2.5)
+    chunk_chars = max(1500, min(24000, int((n_ctx - 400 - 2 * notes_tok - 100) * 2.5)))
+    sys_p = ("You are reading a large file in parts.\n"
+             f"TASK: {task}\n"
+             "You receive the NOTES so far and the next PART of the file. Reply with ONLY the updated "
+             "notes: keep every concrete fact relevant to the task (names, numbers, errors, exact "
+             "wording of important lines), merge duplicates, drop irrelevant detail, and stay under "
+             f"{notes_cap // 6} words. No commentary, no greeting.")
+    notes, end_pos, parts_done = "", offset, 0
+    for i, total, text, end in agent_chunks(fp, offset, chunk_chars, AGENT_ANALYZE_MAX_PARTS):
+        if stopped():
+            break
+        user_p = (f"NOTES SO FAR:\n{notes or '(none yet)'}\n\n"
+                  f"PART {i} of about {total}:\n{text}")
+        new = gen([{"role": "system", "content": sys_p},
+                   {"role": "user", "content": user_p}], notes_tok + 120)
+        if new:
+            notes = new[:notes_cap]
+        end_pos, parts_done = end, i
+        progress(i, total)
+    done = end_pos >= size
+    state_txt = (" — whole file covered]" if done else
+                 f"; NOT finished — call analyze_file again with offset={end_pos}]")
+    if stopped() and not done:
+        state_txt = f"; stopped by the user — resume with offset={end_pos}]"
+    return (f"[analysis of {os.path.basename(fp)}: {parts_done} parts, bytes "
+            f"{offset:,}-{end_pos:,} of {size:,}{state_txt}\n" + (notes or "(no notes produced)"))
 
 
 def agent_list_dir(path: str, limit: int = 200) -> str:
@@ -3619,7 +3896,7 @@ def agent_system_info() -> str:
     return "\n".join(L)
 
 
-def agent_execute(name: str, a: Dict[str, Any]) -> str:
+def agent_execute(name: str, a: Dict[str, Any], ctx: Optional[Dict[str, Any]] = None) -> str:
     """ينفّذ أداة واحدة (الإذن يُفحص قبل الاستدعاء). يرفع استثناءً عند الخطأ."""
     def need(key: str) -> str:
         v = a.get(key)
@@ -3631,7 +3908,9 @@ def agent_execute(name: str, a: Dict[str, Any]) -> str:
     if name == "web_fetch":
         return agent_web_fetch(need("url").strip())
     if name == "read_file":
-        return agent_read_file(need("path"))
+        return agent_read_file(need("path"), int(a.get("offset") or 0))
+    if name == "analyze_file":
+        return agent_analyze_file(need("path"), need("task"), int(a.get("offset") or 0), ctx or {})
     if name == "list_dir":
         return agent_list_dir(str(a.get("path") or "."))
     if name == "write_file":
@@ -3659,6 +3938,17 @@ def agent_describe(name: str, a: Dict[str, Any]) -> Tuple[str, str, str]:
         return "Open a web page", url, warn
     if name == "read_file":
         return "Read a file", str(a.get("path", "")), "The file's text will be given to the model."
+    if name == "analyze_file":
+        p_ = str(a.get("path", ""))
+        try:
+            sz = os.path.getsize(os.path.expanduser(p_))
+        except OSError:
+            sz = 0
+        return ("Read a LARGE file completely, part by part",
+                f"{p_}\nsize: {human_size(sz)}\ntask: {a.get('task', '')}\n\n"
+                f"≈ {max(1, sz // 5000):,} parts — your model processes every part, so this can take a long time "
+                "(use the Stop button to cancel).",
+                "Only a condensed summary of the file goes into the chat.")
     if name == "list_dir":
         return "List a folder", str(a.get("path") or "."), "File names in this folder will be given to the model."
     if name == "write_file":
@@ -3683,7 +3973,10 @@ def agent_system_prompt(caps: set) -> str:
         tools += ['web_search {"query": "..."} — search the web, returns top results with URLs',
                   'web_fetch {"url": "https://..."} — read a web page (as text)']
     if "read" in caps:
-        tools += ['read_file {"path": "..."} — read a text file',
+        tools += ['read_file {"path": "...", "offset": 0} — read ~6000 bytes of a text file from a byte offset '
+                  '(the reply says which offset to use next)',
+                  'analyze_file {"path": "...", "task": "what to find or summarize"} — process a LARGE file '
+                  'completely, part by part (slow); returns condensed notes',
                   'list_dir {"path": "..."} — list a folder']
     if "write" in caps:
         tools += ['write_file {"path": "...", "content": "...", "append": false} — write a text file']
@@ -3872,6 +4165,7 @@ class ToolboxApp(ctk.CTk):
         ctk.set_appearance_mode(self.settings.get("appearance", "Dark"))
 
         self._build_layout()
+        self._install_input_helpers()
         self._bind_keys()
         self.show_tool(self.current)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -4333,7 +4627,7 @@ class ToolboxApp(ctk.CTk):
                              font=_font(size=13)).pack(anchor="w", padx=18, pady=(14, 0))
                 ctk.CTkLabel(win, text=self.t(title), font=_font(size=17, weight="bold"),
                              text_color=CC("primary")).pack(anchor="w", padx=18, pady=(0, 6))
-                tb = ctk.CTkTextbox(win, height=210, font=_font(family="Courier", size=12))
+                tb = ctk.CTkTextbox(win, height=210, font=_font(family=MONO_FONT, size=12))
                 tb.pack(fill="both", expand=True, padx=16, pady=4)
                 tb.insert("1.0", detail)
                 tb.configure(state="disabled")
@@ -4401,7 +4695,7 @@ class ToolboxApp(ctk.CTk):
         if not ok:
             return f"DENIED: {why}. Do not retry this action; continue without it.", False
         try:
-            out = agent_execute(name, args)
+            out = agent_execute(name, args, state.get("ctx"))
         except Exception as e:
             return f"error: {type(e).__name__}: {e}", False
         if cap in ("read", "run", "sysinfo", "write"):
@@ -4409,6 +4703,171 @@ class ToolboxApp(ctk.CTk):
         if len(out) > AGENT_RESULT_CHARS:
             out = out[:AGENT_RESULT_CHARS] + "\n…[truncated]"
         return out, True
+
+    # ═════════════════════════════════════════════════════
+    # 【2.5】 تجربة الإدخال لكل الأدوات: قائمة سياقية + تحديد الكل + توهّج التركيز
+    #   تعمل عبر bind_class فتشمل كل حقل في التطبيق (أدواته وإضافاته) بغض النظر
+    #   عن طريقة التشغيل (EXE أو python toolbox.py) — لا تعتمد على سجل ويندوز.
+    # ═════════════════════════════════════════════════════
+    def _install_input_helpers(self):
+        for cls in ("Entry", "Text"):
+            try:
+                self.bind_class(cls, "<Button-3>", self._ctx_event, add="+")
+                if sys.platform == "darwin":                 # ماك: زر ثانٍ / Ctrl+نقر
+                    self.bind_class(cls, "<Button-2>", self._ctx_event, add="+")
+                    self.bind_class(cls, "<Control-Button-1>", self._ctx_event, add="+")
+                for seq in ("<Control-a>", "<Control-A>"):    # يستبدل «بداية السطر» الافتراضية
+                    self.bind_class(cls, seq, self._select_all_event)
+                for seq in ("<Shift-F10>", "<Key-Menu>", "<Key-App>"):
+                    try:
+                        self.bind_class(cls, seq, self._ctx_key, add="+")
+                    except Exception:
+                        pass
+                self.bind_class(cls, "<FocusIn>", self._glow_in, add="+")
+                self.bind_class(cls, "<FocusOut>", self._glow_out, add="+")
+            except Exception:
+                pass
+
+    def _ctx_event(self, event):
+        self._show_ctx(event.widget, event.x_root, event.y_root)
+        return "break"
+
+    def _ctx_key(self, event):
+        w = event.widget
+        try:
+            self._show_ctx(w, w.winfo_rootx() + 24, w.winfo_rooty() + 24)
+        except Exception:
+            pass
+        return "break"
+
+    def _select_all_event(self, event):
+        self._select_all(event.widget)
+        return "break"
+
+    @staticmethod
+    def _select_all(w):
+        try:
+            if w.winfo_class() == "Text":
+                w.tag_add("sel", "1.0", "end-1c")
+                w.mark_set("insert", "end-1c")
+            else:
+                w.select_range(0, "end")
+                w.icursor("end")
+        except Exception:
+            pass
+
+    def _save_widget_text(self, w):
+        try:
+            text = w.get("1.0", "end-1c")
+            fp = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text", "*.txt"), ("Markdown", "*.md"), ("All files", "*.*")])
+            if not fp:
+                return
+            with open(fp, "w", encoding="utf-8") as f:
+                f.write(text)
+            self.toast(self.t("Saved to") + " " + fp, "ok")
+        except Exception as e:
+            self.toast(f"{self.t('Failed')}: {e}", "err")
+
+    def _show_ctx(self, w, x: int, y: int):
+        """قائمة يمين-النقر للحقول: تراجع/قص/نسخ/لصق/حذف/تحديد الكل/نسخ الكل/حفظ/مسح."""
+        try:
+            cls = w.winfo_class()
+        except Exception:
+            return
+        if cls not in ("Entry", "Text"):
+            return
+        kind = "text" if cls == "Text" else "entry"
+        try:
+            w.focus_set()
+        except Exception:
+            pass
+        try:
+            editable = str(w.cget("state")) == "normal"
+            if kind == "text":
+                has_sel = bool(w.tag_ranges("sel"))
+                has_text = bool(w.get("1.0", "end-1c").strip())
+                try:
+                    can_undo = bool(int(str(w.cget("undo"))))
+                except Exception:
+                    can_undo = False
+            else:
+                has_sel = bool(w.selection_present())
+                has_text = bool(w.get())
+                can_undo = False
+            secret = kind == "entry" and bool(str(w.cget("show")))
+        except Exception:
+            return
+        try:
+            has_clip = bool(w.clipboard_get())
+        except Exception:
+            has_clip = False
+        spec = ctx_menu_spec(kind, editable, has_sel, has_text, has_clip, can_undo, secret)
+        if not spec:
+            return
+
+        def act(key: str):
+            try:
+                ev = {"Undo": "<<Undo>>", "Redo": "<<Redo>>", "Cut": "<<Cut>>",
+                      "Copy": "<<Copy>>", "Paste": "<<Paste>>"}.get(key)
+                if ev:
+                    w.event_generate(ev)
+                elif key == "Delete":
+                    w.delete("sel.first", "sel.last")
+                elif key == "Select all":
+                    self._select_all(w)
+                elif key == "Copy all":
+                    self.copy_text(w.get("1.0", "end-1c"))
+                elif key == "Save to file…":
+                    self._save_widget_text(w)
+                elif key == "Clear":
+                    w.delete("1.0", "end") if kind == "text" else w.delete(0, "end")
+            except Exception:
+                pass
+
+        try:
+            kw: Dict[str, Any] = dict(
+                tearoff=0, bg=C("surface"), fg=C("text"), activebackground=C("primary"),
+                activeforeground="#ffffff", disabledforeground=C("muted"), bd=0, relief="flat")
+            try:
+                kw["font"] = _font(size=13)
+            except Exception:
+                pass
+            m = tk.Menu(w, **kw)
+            for it in spec:
+                if it is None:
+                    m.add_separator()
+                else:
+                    key, enabled = it
+                    m.add_command(label=self.t(key), command=(lambda k=key: act(k)),
+                                  state=("normal" if enabled else "disabled"))
+            try:
+                m.tk_popup(x, y)
+            finally:
+                m.grab_release()
+        except Exception:
+            pass
+
+    def _glow_in(self, e):
+        """إبراز حدّ الحقل عند التركيز (CTkEntry / CTkTextbox فقط)."""
+        try:
+            o = e.widget.master
+            if hasattr(o, "_border_color") and not getattr(o, "_ut_glow", False):
+                o._ut_prev = o._border_color
+                o._ut_glow = True
+                o.configure(border_color=CC("primary"))
+        except Exception:
+            pass
+
+    def _glow_out(self, e):
+        try:
+            o = e.widget.master
+            if getattr(o, "_ut_glow", False):
+                o._ut_glow = False
+                o.configure(border_color=o._ut_prev)
+        except Exception:
+            pass
 
     def font(self, **kw):
         """خط مُقاس حسب إعداد حجم الخط — للإضافات (plugins) عبر toolbox_api.font()."""
@@ -4762,7 +5221,7 @@ class ToolboxApp(ctk.CTk):
                 c = self.card(parent, f"⚠ {self.t('Plugin crashed')}")
                 ctk.CTkLabel(c, text=traceback.format_exc()[-1600:],
                              justify="left", text_color=CC("err"),
-                             font=_font(family="Courier", size=11),
+                             font=_font(family=MONO_FONT, size=11),
                              wraplength=760).pack(anchor="w", padx=14,
                                                   pady=(0, 12))
         return _build
@@ -4803,6 +5262,7 @@ class ToolboxApp(ctk.CTk):
             ctk.CTkLabel(f, text=title, font=_font(size=14, weight="bold"),
                          text_color=CC("primary")).pack(
                 anchor="e" if self.rtl else "w", padx=14, pady=(12, 0))
+            ctk.CTkFrame(f, height=1, fg_color=CC("border")).pack(fill="x", padx=14, pady=(6, 2))
         return f
 
     def row(self, parent) -> ctk.CTkFrame:
@@ -4816,7 +5276,7 @@ class ToolboxApp(ctk.CTk):
         side = "right" if self.rtl else "left"
         ctk.CTkLabel(r, text=label, width=_fs(130),
                      anchor="e" if self.rtl else "w").pack(side=side)
-        e = ctk.CTkEntry(r, width=width, show=show)
+        e = ctk.CTkEntry(r, width=width, show=show, height=_fs(30), corner_radius=8)
         e.pack(side=side, padx=8)
         if default:
             e.insert(0, default)
@@ -4835,8 +5295,14 @@ class ToolboxApp(ctk.CTk):
         return m
 
     def textbox(self, parent, height: int = 160, text: str = "") -> ctk.CTkTextbox:
-        tb = ctk.CTkTextbox(parent, height=height, font=_font(family="Courier", size=12))
+        tb = ctk.CTkTextbox(parent, height=height, wrap="word", corner_radius=10,
+                            border_width=1, border_color=CC("border"),
+                            font=_font(family=MONO_FONT, size=12))
         tb.pack(fill="both", expand=True, padx=12, pady=8)
+        try:                                     # تراجع/إعادة داخل مربعات النص (Ctrl+Z / Ctrl+Y)
+            tb._textbox.configure(undo=True, autoseparators=True, maxundo=200)
+        except Exception:
+            pass
         if text:
             tb.insert("1.0", text)
         return tb
@@ -4845,7 +5311,7 @@ class ToolboxApp(ctk.CTk):
         r = self.row(parent)
         side = "right" if self.rtl else "left"
         for text, cmd in items:
-            ctk.CTkButton(r, text=text, command=cmd, height=_fs(28),
+            ctk.CTkButton(r, text=text, command=cmd, height=_fs(30), corner_radius=8,
                           width=max(_fs(80), _fs(9) * len(text))).pack(side=side, padx=4)
         return r
 
@@ -4859,6 +5325,10 @@ class ToolboxApp(ctk.CTk):
         box.configure(state="normal")
         box.delete("1.0", "end")
         box.insert("1.0", text)
+        try:                                     # لا نراكم ذاكرة التراجع لمخرجات الأدوات
+            box._textbox.edit_reset()
+        except Exception:
+            pass
 
     def need(self, parent, name: str) -> bool:
         """عرض رسالة واضحة بدل الانهيار عند غياب مكتبة اختيارية."""
@@ -4944,7 +5414,7 @@ class ToolboxApp(ctk.CTk):
 
         info = self.card(p, "🖥️ " + self.t("System Information"))
         self._dash_info = ctk.CTkLabel(info, text="", justify="left",
-                                       font=_font(family="Courier", size=12))
+                                       font=_font(family=MONO_FONT, size=12))
         self._dash_info.pack(anchor="e" if self.rtl else "w", padx=16, pady=(4, 14))
 
         self._refresh_dashboard()
@@ -5068,7 +5538,7 @@ class ToolboxApp(ctk.CTk):
 
         d = self.card(p, "📁 " + self.t("Data"))
         ctk.CTkLabel(d, text=APP_DIR, text_color=CC("muted"),
-                     font=_font(family="Courier", size=11)).pack(anchor="w", padx=14, pady=(0, 10))
+                     font=_font(family=MONO_FONT, size=11)).pack(anchor="w", padx=14, pady=(0, 10))
         self.buttons(d, [("📂 " + self.t("Browse"),
                           lambda: webbrowser.open("file://" + APP_DIR))])
 
@@ -5088,7 +5558,7 @@ class ToolboxApp(ctk.CTk):
             f"  Pillow          {'✓' if HAS_PIL else '✗  ' + MISSING_HINTS['Pillow']}",
             f"  zoneinfo        {'✓' if HAS_ZONEINFO else '✗'}",
         ])
-        ctk.CTkLabel(c, justify="left", font=_font(family="Courier", size=12),
+        ctk.CTkLabel(c, justify="left", font=_font(family=MONO_FONT, size=12),
                      text=(f"{len(TOOLS)} tools · {len(SECTIONS)} sections · "
                            f"{len(LANG_NAMES)} languages\n"
                            f"Python {platform.python_version()} on "
@@ -5099,7 +5569,7 @@ class ToolboxApp(ctk.CTk):
                            "   أو عند موافقتك على طلب أداة من «وضع الوكيل» في الـ LLM."
                            )).pack(anchor="w", padx=16, pady=(4, 12))
         s = self.card(p, "⌨️ Shortcuts")
-        ctk.CTkLabel(s, justify="left", font=_font(family="Courier", size=12),
+        ctk.CTkLabel(s, justify="left", font=_font(family=MONO_FONT, size=12),
                      text=("  Ctrl+K   Command palette\n"
                            "  ↑ / ↓    Navigate palette results\n"
                            "  Ctrl+F   Focus search\n"
@@ -5942,7 +6412,7 @@ class ToolboxApp(ctk.CTk):
         c = self.card(p, "🔢 " + self.t("Text Counter"))
         box = self.textbox(c, 240)
         res = ctk.CTkLabel(c, text="", justify="left",
-                           font=_font(family="Courier", size=13))
+                           font=_font(family=MONO_FONT, size=13))
         res.pack(anchor="e" if self.rtl else "w", padx=16, pady=(0, 12))
 
         def count(*_):
@@ -6005,8 +6475,8 @@ class ToolboxApp(ctk.CTk):
         c = self.card(p, "📑 " + self.t("Text Diff"))
         r = ctk.CTkFrame(c, fg_color="transparent")
         r.pack(fill="both", expand=True, padx=12, pady=6)
-        a = ctk.CTkTextbox(r, height=180, font=_font(family="Courier", size=12))
-        b = ctk.CTkTextbox(r, height=180, font=_font(family="Courier", size=12))
+        a = ctk.CTkTextbox(r, height=180, font=_font(family=MONO_FONT, size=12))
+        b = ctk.CTkTextbox(r, height=180, font=_font(family=MONO_FONT, size=12))
         a.pack(side="right" if self.rtl else "left", fill="both", expand=True, padx=4)
         b.pack(side="right" if self.rtl else "left", fill="both", expand=True, padx=4)
         out = self.textbox(c, 260)
@@ -6888,27 +7358,40 @@ class ToolboxApp(ctk.CTk):
             bundle = {
                 "app": APP_NAME,
                 "exported": _dt.datetime.now().isoformat(timespec="seconds"),
-                "settings": self.settings,
+                # مفاتيح الـ API لا تُصدَّر (النسخة قد تُشارَك أو تُرفع) — أعد إدخالها بعد الاستعادة
+                "settings": {**self.settings,
+                             "api_keys": {k: "" for k in (self.settings.get("api_keys") or {})}},
                 "tasks": jload(F_TASKS, []),
                 "notes": open(F_NOTES, encoding="utf-8").read() if os.path.exists(F_NOTES) else "",
                 "history": jload(F_HISTORY, []),
             }
             jsave(path, bundle)
-            return f"✓ exported → {path}\n{human_size(os.path.getsize(path))}"
+            return (f"✓ exported → {path}\n{human_size(os.path.getsize(path))}\n"
+                    + self.t("API keys are not included in backups."))
 
         def import_all() -> str:
             path = filedialog.askopenfilename(filetypes=[("JSON", "*.json")])
             if not path:
                 return "cancelled"
             b = jload(path, {})
-            if "settings" not in b:
+            if not isinstance(b, dict) or not isinstance(b.get("settings"), dict):
                 raise ValueError("not a Toolbox backup")
-            self.settings.update(b["settings"])
+            incoming = dict(b["settings"])
+            # أمان: ملف مستورد لا يُفعّل «وضع الوكيل» ولا يمحو مفاتيح API الحالية
+            incoming.pop("llm_agent", None)
+            keys_in = incoming.pop("api_keys", None)
+            self.settings.update(incoming)
+            if isinstance(keys_in, dict):
+                cur_keys = self.settings.setdefault("api_keys", {})
+                for k_, v_ in keys_in.items():
+                    if isinstance(v_, str) and v_.strip():
+                        cur_keys[k_] = v_
             self.save_settings()
-            jsave(F_TASKS, b.get("tasks", []))
+            tasks_in, hist_in = b.get("tasks", []), b.get("history", [])
+            jsave(F_TASKS, tasks_in if isinstance(tasks_in, list) else [])
             with open(F_NOTES, "w", encoding="utf-8") as f:
-                f.write(b.get("notes", ""))
-            jsave(F_HISTORY, b.get("history", []))
+                f.write(str(b.get("notes", "")))
+            jsave(F_HISTORY, hist_in if isinstance(hist_in, list) else [])
             return f"✓ imported from {path}\n" + self.t("Restart the app to apply everything.")
 
         self.buttons(c, [("📤 " + self.t("Export"),
@@ -6923,7 +7406,7 @@ class ToolboxApp(ctk.CTk):
             rows.append(f" {'✓' if ex else '·'}  {os.path.basename(path):<34} "
                         f"{human_size(os.path.getsize(path)) if ex else '-'}")
         ctk.CTkLabel(f, text="\n".join(rows), justify="left",
-                     font=_font(family="Courier", size=12)).pack(
+                     font=_font(family=MONO_FONT, size=12)).pack(
             anchor="e" if self.rtl else "w", padx=16, pady=(4, 14))
 
     # ═════════════════════════════════════════════════════
@@ -7628,6 +8111,34 @@ class ToolboxApp(ctk.CTk):
             except Exception:
                 return d
 
+        # ══ إعادة تصميم مرئية فقط (لا تغيير في الوظائف) ═════════════════
+        #   ترويسة بحالة حيّة + مبدّل عروض: Chat / Model / Config / Agent
+        def sect(parent, text: str):
+            """عنوان قسم صغير داخل البطاقة."""
+            lb = ctk.CTkLabel(parent, text=self.t(text).upper(), anchor=anch,
+                              font=_font(size=11, weight="bold"), text_color=CC("muted"))
+            lb.pack(fill="x", padx=16, pady=(12, 0))
+            return lb
+
+        llm_hdr = ctk.CTkFrame(p, fg_color=CC("surface"), corner_radius=14,
+                               border_width=1, border_color=CC("border"))
+        llm_hdr.pack(fill="x", padx=8, pady=(8, 0))
+        hdr_top = ctk.CTkFrame(llm_hdr, fg_color="transparent")
+        hdr_top.pack(fill="x", padx=14, pady=(12, 4))
+        ctk.CTkLabel(hdr_top, text="🦙  " + self.t("Local LLM"),
+                     font=_font(size=20, weight="bold"),
+                     text_color=CC("primary")).pack(side=side)
+        chip = ctk.CTkLabel(hdr_top, text="", corner_radius=12, fg_color=CC("surface2"),
+                            font=_font(size=12, weight="bold"), text_color=CC("muted"))
+        chip.pack(side="left" if self.rtl else "right")
+        VIEW_LABELS = {"chat": "💬 " + self.t("Chat"),
+                       "model": "🧩 " + self.t("Model"),
+                       "config": "⚙️ " + self.t("Configuration"),
+                       "agent": "🛡 " + self.t("Agent")}
+        seg = ctk.CTkSegmentedButton(llm_hdr, values=list(VIEW_LABELS.values()),
+                                     height=_fs(34), font=_font(size=13, weight="bold"))
+        seg.pack(fill="x", padx=14, pady=(2, 12))
+
         # ── بطاقة 1: اختيار الملف + معلومات الموديل (تعمل بلا llama-cpp-python)
         c1 = self.card(p, "🦙 " + self.t("Local LLM"))
         ctk.CTkLabel(c1, text=self.t("Run GGUF models locally — 100% offline"),
@@ -7638,6 +8149,7 @@ class ToolboxApp(ctk.CTk):
         BK_AUTO = self.t("llama.cpp Server (auto-start)")
         BK_INV = {BK_LOCAL: "local", BK_SERVER: "server", BK_AUTO: "auto"}
         _pr_saved = self.settings.get("llm_params") or {}
+        sect(c1, "Engine")
         bk_row = self.row(c1)
         ctk.CTkLabel(bk_row, text=self.t("Backend"), width=_fs(130),
                      anchor=anch).pack(side=side)
@@ -7669,9 +8181,9 @@ class ToolboxApp(ctk.CTk):
         if llama_mod is None:
             # ✦ لوحة مساعدة التثبيت — تشرح خيارات الحل بالتفصيل (قابلة للنسخ)
             hb = ctk.CTkTextbox(warn_fr, height=180,
-                                font=_font(family="Courier", size=12))
+                                font=_font(family=MONO_FONT, size=12))
             hb.pack(fill="x", padx=12, pady=(6, 2))
-            hb.insert("1.0", _LLM_INSTALL_HELP)
+            hb.insert("1.0", (_LLM_FROZEN_NOTE if IS_FROZEN else "") + _LLM_INSTALL_HELP)
             hb.configure(state="disabled")
             hw = self.row(warn_fr)
             ctk.CTkLabel(hw, text="⚠ llama-cpp-python "
@@ -7686,6 +8198,7 @@ class ToolboxApp(ctk.CTk):
                          text="✓ " + self.t("Server mode — llama-cpp-python is not needed")
                          ).pack(fill="x", padx=14, pady=(2, 2))
 
+        srv_head = sect(c1, "Server")
         ur = self.row(c1)
         ctk.CTkLabel(ur, text=self.t("Server URL"), width=_fs(130),
                      anchor=anch).pack(side=side)
@@ -7693,7 +8206,7 @@ class ToolboxApp(ctk.CTk):
                             placeholder_text="http://127.0.0.1:8080")
         eurl.insert(0, str(_pr_saved.get("url", "") or ""))
         eurl.pack(side=side, padx=8)
-        ur_ref["ur"] = ur
+        ur_ref["ur"] = srv_head           # أي لوحة تحذير تُدرَج قبل عنوان «الخادم»
         bk.configure(command=_bk_changed)
         _bk_changed()
 
@@ -7814,6 +8327,7 @@ class ToolboxApp(ctk.CTk):
         eport.insert(0, str(_pr_saved.get("port", "8765")))
         eport.pack(side=side, padx=8)
 
+        sect(c1, "Model file")
         r1 = self.row(c1)
         ep = ctk.CTkEntry(r1, width=470, placeholder_text=self.t("GGUF model file"))
         ep.pack(side=side, padx=(8, 0))
@@ -7824,6 +8338,7 @@ class ToolboxApp(ctk.CTk):
                         if m.get("tier") == "small"]
         LARGE_LABELS = [f"{m['name']} · {m['size']}" for m in _LLM_MODELS
                         if m.get("tier") == "large"]
+        sect(c1, "Download a model")
         mdr = self.row(c1)
         ctk.CTkLabel(mdr, text=self.t("Download model"), width=_fs(130),
                      anchor=anch).pack(side=side)
@@ -7929,7 +8444,7 @@ class ToolboxApp(ctk.CTk):
                     ("1", "true", "True", "1.0"),
                     "kv": str(_pr_saved.get("kv", "Auto") or "Auto")}
         info = ctk.CTkLabel(c1, text="", justify="left", anchor=anch,
-                            font=_font(family="Courier", size=12))
+                            font=_font(family=MONO_FONT, size=12))
         info.pack(anchor=anch, padx=14, pady=(6, 10), fill="x")
         ramhint = ctk.CTkLabel(c1, text="", justify="left", anchor=anch,
                                text_color=CC("warn"))
@@ -8443,26 +8958,170 @@ class ToolboxApp(ctk.CTk):
         sw_think.pack(side=side, padx=8)
         sw_think.configure(command=lambda: _save_llm_params(
             BK_INV.get(bk.get(), "local"), think=str(sw_think.get())))
-        trans = ctk.CTkTextbox(c3, height=300,
-                               font=_font(family="Courier", size=13))
-        trans.pack(fill="both", expand=True, padx=12, pady=(8, 6))
+        trans = ctk.CTkTextbox(c3, height=_fs(380), wrap="word", corner_radius=10,
+                               border_width=1, border_color=CC("border"),
+                               fg_color=CC("bg"), font=_font(size=14))
+        trans.pack(fill="both", expand=True, padx=12, pady=(8, 8))
         trans.configure(state="disabled")
-        ctk.CTkLabel(c3, text=self.t("Your message"),
-                     anchor=anch).pack(fill="x", padx=14, pady=(0, 0))
-        inp = ctk.CTkTextbox(c3, height=64)
-        inp.pack(fill="x", padx=12, pady=(2, 4))
+        # ألوان رؤوس الرسائل داخل المحادثة (لون فقط — لا تغيير في النص المخزَّن)
+        for tg_, key_ in (("t_user", "primary"), ("t_bot", "ok"),
+                          ("t_tool", "warn"), ("t_meta", "muted")):
+            try:
+                trans.tag_config(tg_, foreground=C(key_))
+            except Exception:
+                pass
+        ctk.CTkLabel(c3, text=self.t("Your message"), anchor=anch, text_color=CC("muted"),
+                     font=_font(size=12)).pack(fill="x", padx=16, pady=(0, 0))
+        comp = ctk.CTkFrame(c3, fg_color="transparent")
+        comp.pack(fill="x", padx=12, pady=(2, 2))
+        btn_col = ctk.CTkFrame(comp, fg_color="transparent")
+        btn_col.pack(side="left" if self.rtl else "right", anchor="n", padx=(8, 0))
+        inp = ctk.CTkTextbox(comp, height=_fs(76), wrap="word", corner_radius=10,
+                             border_width=1, border_color=CC("border"), font=_font(size=14))
+        inp.pack(side=side, fill="x", expand=True)
+        try:                                              # Ctrl+Z يُعيد آخر رسالة أُرسلت/عدّلتها
+            inp._textbox.configure(undo=True, autoseparators=True, maxundo=100)
+        except Exception:
+            pass
+        foot = ctk.CTkFrame(c3, fg_color="transparent")
+        foot.pack(fill="x", padx=12, pady=(2, 0))
+        ctk.CTkButton(foot, text="📎 " + self.t("Attach file"), height=_fs(26),
+                      width=max(_fs(90), _fs(9) * 14), fg_color="transparent", border_width=1,
+                      border_color=CC("border"), text_color=CC("text"), hover_color=CC("surface2"),
+                      command=lambda: attach_file()).pack(side=side, padx=(0, 6))
+        prompts_menu = ctk.CTkOptionMenu(foot, values=[""], width=_fs(170), height=_fs(26),
+                                         dynamic_resizing=False,
+                                         command=lambda v: use_template(v))
+        prompts_menu.pack(side=side, padx=6)
+        sw_enter = ctk.CTkSwitch(foot, text=self.t("Enter sends"), onvalue="1", offvalue="0",
+                                 command=lambda: toggle_enter())
+        sw_enter.pack(side=side, padx=10)
+        cnt = ctk.CTkLabel(foot, text="", text_color=CC("muted"), font=_font(size=11))
+        cnt.pack(side="left" if self.rtl else "right", padx=4)
         st3 = self.statuslabel(c3)
+        if self._llm["model"] is None and not (self._llm.get("backend") == "server"
+                                               and self._llm.get("url")):
+            st3.configure(text="💡 " + self.t("Load a model in the Model tab first."),
+                          text_color=CC("muted"))
 
         hist: List[Tuple[str, str]] = self._llm["hist"]
+        recall: Dict[str, Any] = {"i": None, "draft": ""}      # تنقّل ↑/↓ بين رسائلك السابقة
 
-        def _append(txt: str):
+        _LINE_TAGS = ((re.compile(r"^🧑 "), "t_user"), (re.compile(r"^🦙 "), "t_bot"),
+                      (re.compile(r"^🔧 "), "t_tool"), (re.compile(r"^   ✗"), "t_tool"),
+                      (re.compile(r"^   [✓📄]"), "t_meta"), (re.compile(r"^— \d"), "t_meta"))
+
+        def _tag_lines(start: str, txt: str):
+            """يلوّن أسطر الرؤوس/الأدوات/الإحصاءات في الجزء المُضاف حديثًا فقط."""
+            try:
+                line0, col0 = (int(x) for x in start.split("."))
+                for k, ln in enumerate(txt.split("\n")):
+                    if k == 0 and col0 != 0:
+                        continue            # بداية الجزء في منتصف سطر — لا رأس هنا
+                    for rx, tg in _LINE_TAGS:
+                        if rx.match(ln):
+                            trans.tag_add(tg, f"{line0 + k}.0", f"{line0 + k}.end")
+                            break
+            except Exception:
+                pass
+
+        def _append(txt: str, force: bool = False):
             try:
                 trans.configure(state="normal")
+                try:
+                    start = str(trans.index("end-1c"))
+                except Exception:
+                    start = ""
+                try:                                       # لا نسحب العرض إن كنت تقرأ أعلى المحادثة
+                    at_bottom = float(trans.yview()[1]) >= 0.97
+                except Exception:
+                    at_bottom = True
                 trans.insert("end", txt)
-                trans.see("end")
+                if start:
+                    _tag_lines(start, txt)
+                if force or at_bottom:
+                    trans.see("end")
                 trans.configure(state="disabled")
             except Exception:
                 pass
+
+        # ── عرض Markdown داخل المحادثة (وسوم فقط — النص المخزَّن لا يتغيّر)
+        tw = getattr(trans, "_textbox", None)
+        astral = [0]
+
+        def _fnt(**kw):
+            f = _font(**kw)
+            try:
+                return trans._apply_font_scaling(f)
+            except Exception:
+                return (kw.get("family") or "TkDefaultFont", -int(kw.get("size", 14)))
+
+        def _md_setup():
+            if tw is None:
+                return
+            try:
+                tw.tag_configure("t_userbox", background=C("surface2"), lmargin1=10,
+                                 lmargin2=10, rmargin=10, spacing1=2, spacing3=2)
+                for n_, sz_ in ((1, 20), (2, 17), (3, 15)):
+                    tw.tag_configure(f"md_h{n_}", font=_fnt(size=sz_, weight="bold"),
+                                     foreground=C("primary"), spacing1=8, spacing3=3)
+                tw.tag_configure("md_bold", font=_fnt(size=14, weight="bold"))
+                tw.tag_configure("md_italic", font=_fnt(size=14, slant="italic"))
+                tw.tag_configure("md_code", font=_fnt(family=MONO_FONT, size=13),
+                                 background=C("surface2"), foreground=C("warn"))
+                tw.tag_configure("md_codeblock", font=_fnt(family=MONO_FONT, size=13),
+                                 background=C("surface"), lmargin1=18, lmargin2=18,
+                                 rmargin=10, spacing1=1, spacing3=1)
+                tw.tag_configure("md_bullet", lmargin1=16, lmargin2=34)
+                tw.tag_configure("md_bulletmark", foreground=C("primary"),
+                                 font=_fnt(size=14, weight="bold"))
+                tw.tag_configure("md_quote", foreground=C("muted"), lmargin1=22, lmargin2=22,
+                                 font=_fnt(size=14, slant="italic"))
+                tw.tag_configure("md_link", foreground=C("primary"), underline=True)
+                tw.tag_configure("md_hide", elide=True)
+                tw.tag_raise("sel")                        # يبقى التحديد ظاهرًا فوق الألوان
+            except Exception:
+                pass
+
+        _MD_TAGS = ("md_h1", "md_h2", "md_h3", "md_bold", "md_italic", "md_code",
+                    "md_codeblock", "md_bullet", "md_bulletmark", "md_quote", "md_link",
+                    "md_hide", "t_userbox")
+
+        def _units(line: str, col: int) -> int:
+            """موضع العمود كما يعدّه Tk (الرموز خارج BMP قد تُحسب وحدتين)."""
+            if not astral[0]:
+                try:
+                    tmp = tk.Text(self)
+                    tmp.insert("1.0", "\U0001F600")
+                    astral[0] = int(str(tmp.index("end-1c")).split(".")[1])
+                    tmp.destroy()
+                except Exception:
+                    astral[0] = 1
+            if astral[0] == 1:
+                return col
+            return col + sum(1 for ch in line[:col] if ord(ch) > 0xFFFF)
+
+        def _md_render():
+            if tw is None:
+                return
+            try:
+                lines = trans.get("1.0", "end-1c").split("\n")
+                for tg_ in _MD_TAGS:
+                    tw.tag_remove(tg_, "1.0", "end")
+                asst, usr = md_blocks(lines)
+                for a_, b_ in usr:
+                    tw.tag_add("t_userbox", f"{a_ + 1}.0", f"{b_ + 1}.0")
+                for a_, b_ in asst:
+                    for tag, li, c0, c1 in md_spans(lines[a_:b_]):
+                        ln_i = a_ + li
+                        line = lines[ln_i]
+                        st_ = f"{ln_i + 1}.{_units(line, c0)}"
+                        en_ = f"{ln_i + 2}.0" if c1 is None else f"{ln_i + 1}.{_units(line, c1)}"
+                        tw.tag_add(tag, st_, en_)
+            except Exception:
+                pass
+
+        _md_setup()
 
         def transcript_text() -> str:
             out = []
@@ -8473,10 +9132,11 @@ class ToolboxApp(ctk.CTk):
             return "\n\n".join(out)
 
         if hist:                                            # إعادة عرض المحادثة بعد إعادة بناء الصفحة
-            _append(transcript_text())
+            _append(transcript_text(), force=True)
+            _md_render()
 
         def _start_turn(q: str):
-            _append(f"\n\n🧑 {self.t('You')}:\n{q}\n\n🦙 {self.t('Assistant')}:\n")
+            _append(f"\n\n🧑 {self.t('You')}:\n{q}\n\n🦙 {self.t('Assistant')}:\n", force=True)
 
         def _finish_turn(ntok: int, secs: float, stopped: bool,
                          nhidden: int = 0):
@@ -8486,6 +9146,7 @@ class ToolboxApp(ctk.CTk):
             if stopped:
                 tail += " · ⏹ " + self.t("Stopped.")
             _append(tail)
+            _md_render()                                   # تنسيق الجواب بعد اكتماله
 
         def work_send(q: str, sp: str, ptemp: str, ptop: str,
                       pmaxtok: str, prp: str, pthink: bool = True):
@@ -8593,7 +9254,48 @@ class ToolboxApp(ctk.CTk):
                         self._ui(_append, "".join(pending))
                     return "".join(answer), ntok, (tf.suppressed_chars if tf is not None else 0)
 
-                state: Dict[str, Any] = {"local_data_seen": False}
+                def quiet_gen(cur: List[Dict[str, str]], max_tok: int) -> str:
+                    """توليد صامت (بلا عرض) لمعالجة الملفات الكبيرة — نص نهائي فقط."""
+                    if backend == "server":
+                        stream = _llm_http_stream(url, cur, max_tokens=max(16, max_tok),
+                                                  temperature=0.2, top_p=0.9, repeat_penalty=1.1,
+                                                  disable_thinking=True, stop_ev=stop_ev)
+                    else:
+                        stream = m.create_chat_completion(
+                            messages=cur, max_tokens=max(16, max_tok), temperature=0.2,
+                            top_p=0.9, repeat_penalty=1.1, stream=True)
+                    qtf, parts_ = _ThinkFilter(), []
+                    for ch in stream:
+                        if stop_ev.is_set():
+                            break
+                        try:
+                            delta = ch["choices"][0].get("delta") or {}
+                        except Exception:
+                            continue
+                        if delta.get("reasoning_content"):
+                            continue
+                        piece = delta.get("content") or ""
+                        if piece:
+                            v_ = qtf.feed(piece)
+                            if v_:
+                                parts_.append(v_)
+                    parts_.append(qtf.flush())
+                    return "".join(parts_).strip()
+
+                def file_progress(i: int, total: int):
+                    if i == 1 or i == total or i % max(1, total // 40) == 0:
+                        self._ui(_append, f"   📄 part {i}/{total}\n")
+
+                try:
+                    n_ctx_val = (int(m.n_ctx()) if backend != "server" and m is not None
+                                 else int(str((self.settings.get("llm_params") or {})
+                                              .get("n_ctx", 4096)) or 4096))
+                except Exception:
+                    n_ctx_val = 4096
+                state: Dict[str, Any] = {
+                    "local_data_seen": False,
+                    "ctx": {"gen": quiet_gen, "progress": file_progress,
+                            "stopped": stop_ev.is_set, "n_ctx": n_ctx_val}}
                 total_tok, total_hidden = 0, 0
                 final_answer = ""
                 for step in range(AGENT_MAX_STEPS + 1):
@@ -8647,7 +9349,13 @@ class ToolboxApp(ctk.CTk):
             ptemp, ptop = ftmp.get(), ftop.get()
             pmaxtok, prp = ftok.get(), frp.get()
             pthink = str(sw_think.get()) == "1"          # ✦ التفكير العميق؟
+            sent = self._llm.setdefault("inputs", [])    # سجل رسائلك للتنقل بـ ↑/↓
+            if not sent or sent[-1] != q:
+                sent.append(q)
+                del sent[:-50]
+            recall["i"] = None
             inp.delete("1.0", "end")
+            _input_meta()
             self.run_async(
                 lambda: work_send(q, sp, ptemp, ptop, pmaxtok, prp, pthink),
                 None, st3, self.t("Generating…"))
@@ -8682,13 +9390,234 @@ class ToolboxApp(ctk.CTk):
                 f.write(transcript_text() + "\n")
             self.toast(self.t("Chat saved to") + " " + fp, "ok")
 
-        self.buttons(c3, [
-            ("📨 " + self.t("Send"), do_send),
-            ("⏹ " + self.t("Stop"), do_stop),
-            ("🧹 " + self.t("New chat"), new_chat),
-            ("💾 " + self.t("Save chat"), save_chat),
-            ("📋 " + self.t("Copy"),
-             lambda: self.copy_text(transcript_text()))])
+        # أزرار الإرسال بجانب مربع الكتابة + أزرار ثانوية بشكل «شبحي»
+        ctk.CTkButton(btn_col, text="📨 " + self.t("Send"), width=_fs(118), height=_fs(38),
+                      font=_font(size=14, weight="bold"), command=do_send).pack(pady=(0, 6))
+        ctk.CTkButton(btn_col, text="⏹ " + self.t("Stop"), width=_fs(118), height=_fs(30),
+                      fg_color="transparent", border_width=1, border_color=CC("err"),
+                      text_color=CC("err"), hover_color=CC("surface2"),
+                      command=do_stop).pack()
+        sec_row = self.row(c3)
+        for txt_, cmd_ in (("🧹 " + self.t("New chat"), new_chat),
+                           ("💾 " + self.t("Save chat"), save_chat),
+                           ("📋 " + self.t("Copy"), lambda: self.copy_text(transcript_text())),
+                           ("📋 " + self.t("Last answer"), lambda: copy_last())):
+            ctk.CTkButton(sec_row, text=txt_, command=cmd_, height=_fs(26),
+                          width=max(_fs(80), _fs(9) * len(txt_)), fg_color="transparent",
+                          border_width=1, border_color=CC("border"), text_color=CC("text"),
+                          hover_color=CC("surface2")).pack(side=side, padx=4)
+
+        # ══ طرق الإدخال ═══════════════════════════════════════════════════
+        #   Enter = إرسال · Shift+Enter = سطر جديد · Ctrl+Enter = إرسال دائمًا
+        #   Esc = إيقاف التوليد · ↑/↓ = تنقّل بين رسائلك السابقة (والمربع فارغ)
+        enter_sends = [bool(self.settings.get("chat_enter_sends", True))]
+        if enter_sends[0]:
+            sw_enter.select()
+
+        def toggle_enter():
+            enter_sends[0] = str(sw_enter.get()) == "1"
+            self.settings["chat_enter_sends"] = enter_sends[0]
+            self.save_settings()
+
+        def _cur_ctx() -> int:
+            try:
+                mdl = self._llm["model"]
+                if mdl is not None and self._llm.get("backend") != "server":
+                    return int(mdl.n_ctx())
+                return int(str((self.settings.get("llm_params") or {}).get("n_ctx", 4096)) or 4096)
+            except Exception:
+                return 4096
+
+        def _input_meta(_e=None):
+            """عدّاد الحروف/الرموز التقريبي + تمدّد مربع الكتابة تلقائيًا."""
+            try:
+                txt = inp.get("1.0", "end-1c")
+                n = len(txt)
+                est = int(n / 3.2 + 0.5) if n else 0
+                rows = 1 + txt.count("\n") + sum(len(x) // 70 for x in txt.split("\n"))
+                inp.configure(height=_fs(26) + max(2, min(8, rows)) * _fs(22))
+                ctx = _cur_ctx()
+                msg = f"{n:,} {self.t('chars')} · ≈{est:,} {self.t('tokens')}" if n else ""
+                key = "muted"
+                if n and est > 0.8 * ctx:
+                    msg += f" / {ctx:,}"
+                    key = "warn"
+                cnt.configure(text=msg, text_color=CC(key))
+            except Exception:
+                pass
+
+        def _on_return(_e):
+            if enter_sends[0]:
+                do_send()
+                return "break"
+            return None
+
+        def _on_ctrl_return(_e):
+            do_send()
+            return "break"
+
+        def _hist_nav(direction: int):
+            items = self._llm.setdefault("inputs", [])
+            if not items:
+                return None
+            cur = inp.get("1.0", "end-1c")
+            if direction < 0:
+                if recall["i"] is None:
+                    if cur.strip():
+                        return None                  # التنقل يبدأ فقط من مربع فارغ
+                    recall["draft"], recall["i"] = cur, len(items)
+                if recall["i"] > 0:
+                    recall["i"] -= 1
+            else:
+                if recall["i"] is None:
+                    return None
+                recall["i"] += 1
+            if recall["i"] >= len(items):
+                recall["i"], text = None, recall["draft"]
+            else:
+                text = items[recall["i"]]
+            inp.delete("1.0", "end")
+            inp.insert("1.0", text)
+            _input_meta()
+            return "break"
+
+        def _on_up(_e):
+            return _hist_nav(-1) if str(inp.index("insert")).split(".")[0] == "1" else None
+
+        def _on_down(_e):
+            last = str(inp.index("end-1c")).split(".")[0]
+            return _hist_nav(1) if str(inp.index("insert")).split(".")[0] == last else None
+
+        def _on_key(e):
+            if getattr(e, "keysym", "") not in ("Up", "Down", "Shift_L", "Shift_R", "Control_L",
+                                                 "Control_R", "Alt_L", "Alt_R", "Return"):
+                recall["i"] = None
+            _input_meta()
+
+        for seq_, fn_ in (("<Return>", _on_return), ("<KP_Enter>", _on_return),
+                          ("<Control-Return>", _on_ctrl_return),
+                          ("<Escape>", lambda _e: (do_stop(), "break")[1]),
+                          ("<Up>", _on_up), ("<Down>", _on_down),
+                          ("<KeyRelease>", _on_key)):
+            inp.bind(seq_, fn_)
+        inp.bind("<Shift-Return>", lambda _e: None)        # سطر جديد (السلوك الافتراضي)
+
+        _TEMPLATES = {
+            "Summarize": "Summarize the following text in 5 short bullet points:\n\n",
+            "Explain simply": "Explain this in simple terms with a short example:\n\n",
+            "Review code": "Review this code for bugs, security problems and style. Be concise:\n\n",
+            "Fix code": "Find and fix the bugs in this code, then explain each fix:\n\n",
+            "Write tests": "Write unit tests for this code:\n\n",
+            "Translate to English": "Translate the following text to English:\n\n",
+            "Translate to Arabic": "Translate the following text to Arabic:\n\n",
+            "Rewrite formally": "Rewrite the following text in a clear, formal tone:\n\n",
+            "Brainstorm ideas": "Give me 10 creative ideas for: ",
+        }
+        _prompts_title = "✨ " + self.t("Quick prompts")
+        prompts_menu.configure(values=[self.t(k) for k in _TEMPLATES])
+        prompts_menu.set(_prompts_title)
+
+        def use_template(label: str):
+            key = next((k for k in _TEMPLATES if self.t(k) == label), None)
+            prompts_menu.set(_prompts_title)
+            if key is None:
+                return
+            if inp.get("1.0", "end-1c").strip():
+                inp.insert("insert", "\n" + _TEMPLATES[key])
+            else:
+                inp.delete("1.0", "end")
+                inp.insert("1.0", _TEMPLATES[key])
+            inp.focus_set()
+            _input_meta()
+
+        def attach_file():
+            """يُدرج محتوى ملف نصي (تختاره أنت) داخل رسالتك — بلا أي صلاحيات للوكيل."""
+            fp = filedialog.askopenfilename(
+                title=self.t("Attach file"),
+                filetypes=[("Text / code", "*.txt *.md *.py *.json *.csv *.log *.js *.ts *.html "
+                            "*.css *.xml *.yaml *.yml *.ini *.cfg *.c *.h *.cpp *.java *.go *.rs "
+                            "*.sql *.sh *.bat *.ps1"), ("All files", "*.*")])
+            if not fp:
+                return
+            try:
+                with open(fp, "rb") as f:
+                    raw = f.read(400_000)
+                if b"\0" in raw[:4096]:
+                    self.toast(self.t("Failed") + ": binary file", "err")
+                    return
+                text = raw.decode("utf-8", "replace")
+                note = ""
+                if len(text) > 60_000:
+                    text, note = text[:60_000], "\n[…truncated to 60,000 characters]"
+                ext = os.path.splitext(fp)[1].lstrip(".").lower()
+                block = f"\n```{ext}\n# {os.path.basename(fp)}\n{text}{note}\n```\n"
+                inp.insert("insert", block)
+                inp.focus_set()
+                _input_meta()
+                if note:
+                    self.toast(self.t("File truncated to 60,000 characters"), "warn")
+            except Exception as e:
+                self.toast(f"{self.t('Failed')}: {e}", "err")
+
+        def copy_last():
+            for role, content in reversed(hist):
+                if role == "assistant":
+                    self.copy_text(content)
+                    return
+            self.toast(self.t("Chat is empty"), "warn")
+
+        # ── مبدّل العروض (مرئي فقط): بطاقة واحدة أو أكثر لكل عرض — الودجتس كلها تبقى حيّة
+        VIEW_CARDS = {"chat": [c3], "model": [c1], "config": [c2], "agent": [ag]}
+
+        def _show_view(label: str):
+            key = next((k for k, v in VIEW_LABELS.items() if v == label), "chat")
+            for cds in VIEW_CARDS.values():
+                for cd in cds:
+                    cd.pack_forget()
+            for cd in VIEW_CARDS[key]:
+                cd.pack(fill="x", padx=8, pady=8)
+            self._llm["view"] = key
+            if key == "chat":
+                try:
+                    inp.focus_set()
+                except Exception:
+                    pass
+
+        def _chip_state() -> Tuple[str, str]:
+            L = self._llm
+            try:
+                if dl_state.get("busy"):
+                    return "⬇ " + self.t("Downloading…"), "primary"
+            except Exception:
+                pass
+            if L.get("busy"):
+                return "⏳ " + self.t("Generating…"), "warn"
+            if L.get("model") is not None:
+                nm = os.path.basename(str(L.get("path") or "")) or self.t("Model")
+                return "● " + (nm if len(nm) <= 40 else nm[:37] + "…"), "ok"
+            if L.get("backend") == "server" and L.get("url"):
+                return "● " + str(L["url"]), "ok"
+            return "○ " + self.t("No model selected"), "muted"
+
+        def _chip_tick():
+            try:
+                if not llm_hdr.winfo_exists():
+                    return
+                txt_, key_ = _chip_state()
+                chip.configure(text=f"   {txt_}   ", text_color=CC(key_))
+                llm_hdr.after(1200, _chip_tick)
+            except Exception:
+                pass
+
+        seg.configure(command=_show_view)
+        _loaded = (self._llm["model"] is not None
+                   or (self._llm.get("backend") == "server" and bool(self._llm.get("url"))))
+        _start = self._llm.get("view") or ("chat" if _loaded else "model")
+        if _start not in VIEW_LABELS:
+            _start = "chat"
+        seg.set(VIEW_LABELS[_start])
+        _show_view(VIEW_LABELS[_start])
+        _chip_tick()
 
     # ═════════════════════════════════════════════════════
     # 【17.5】: الخزائن المشفّرة (Vault) — PBKDF2 + Fernet/HMAC-CTR
@@ -8953,7 +9882,7 @@ class ToolboxApp(ctk.CTk):
                                  text_color=CC("muted")).pack(side=side, padx=4)
                 shown = {"on": False}
                 lp = ctk.CTkLabel(rf, text="••••••••", width=90,
-                                  font=_font(family="Courier", size=12))
+                                  font=_font(family=MONO_FONT, size=12))
 
                 def _toggle(e=e, lp=lp, shown=shown):
                     _touch()
@@ -9133,7 +10062,7 @@ class ToolboxApp(ctk.CTk):
                      text=(f"✓ detected: {script}" if script
                            else "✗ " + self.t("polybuild.py not found — set it in Settings")),
                      text_color=CC("ok") if script else CC("err"),
-                     font=_font(family="Courier", size=12)).pack(
+                     font=_font(family=MONO_FONT, size=12)).pack(
             anchor="e" if self.rtl else "w", padx=14, pady=(0, 10))
 
         src = self._folder_picker(head, "project")
@@ -9177,7 +10106,7 @@ class ToolboxApp(ctk.CTk):
         # ── المخرجات الملوّنة
         outcard = self.card(p, "📜 Build output")
         log = ctk.CTkTextbox(outcard, height=300,
-                             font=_font(family="Courier", size=12))
+                             font=_font(family=MONO_FONT, size=12))
         log.pack(fill="both", expand=True, padx=12, pady=8)
         try:
             log.tag_config("ok", foreground=C("ok"))

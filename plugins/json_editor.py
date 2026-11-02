@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""JSON Editor — إضافة نموذجية لـ Ultimate Toolbox Pro v4.2.
+"""JSON Editor — إضافة نموذجية لـ Ultimate Toolbox Pro.
 
 تحرير/تنسيق/تصغير/تحقق من JSON مع نسخ النتيجة. توضّح: مربعات النص،
 قوائم الاختيار، تحديث التسميات، ومعالجة الأخطاء داخل الإضافة.
