@@ -23,7 +23,7 @@
      def build(api, parent):
          card(parent, "Hello from plugin")
          e = field(parent, "Your name")
-         buttons(parent, [("Greet", lambda: toast(f"Hi, {e.get() or '…}!"))])
+         buttons(parent, [("Greet", lambda: toast(f"Hi, {e.get() or '…'}!"))])
 
  ▸ بناء الصفحة:
    يستدعى builder مرة واحدة عند فتح الأداة بنفس طريقة أدوات التطبيق،
